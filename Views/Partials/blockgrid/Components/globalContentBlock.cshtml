@@ -1,0 +1,12 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.GlobalContentBlock, ContentModels.GlobalContentBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var globalContent = content.Content;
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    @await Html.GetBlockGridHtmlAsync(globalContent, "content")
+</igloo-block-wrap>

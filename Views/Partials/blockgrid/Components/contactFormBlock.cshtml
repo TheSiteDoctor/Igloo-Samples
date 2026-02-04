@@ -1,0 +1,33 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ContactFormBlock, ContentModels.ContactFormBlockSettings>>
+@inject ISettingsService _settingsService;
+@{
+    var siteSettings = _settingsService.Get();
+
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var currentId = Umbraco.AssignedContentItem.Id;
+    var currentCulture = System.Threading.Thread.CurrentThread.CurrentCulture.Name;
+
+    var emailTo = siteSettings?.ContactFormEmail;
+
+    var buttonClass = "button button-block button--default";
+    var buttonPalette = content.SubmitButtonPalette?.Key.ToString();
+    if (string.IsNullOrWhiteSpace(buttonPalette) == false)
+    {
+        buttonClass += $" variant-btn-{buttonPalette}";
+    }
+
+    var model = new ContactFormViewModel
+    {
+        ParentModelID = currentId,
+        Culture = currentCulture,
+        ToEmail = emailTo,
+        ButtonClass = buttonClass,
+        MessageSentText = content.MessageSentText
+    };
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <partial name="_ContactFormPartial" model="model"/>
+</igloo-block-wrap>

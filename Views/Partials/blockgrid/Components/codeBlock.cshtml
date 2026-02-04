@@ -1,0 +1,11 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.CodeBlock, ContentModels.CodeBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    @Html.Raw(content.Code)
+</igloo-block-wrap>
+

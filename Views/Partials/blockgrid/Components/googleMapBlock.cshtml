@@ -1,0 +1,33 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.GoogleMapBlock, ContentModels.GoogleMapBlockSettings>>
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var height = BlockHelper.RemovePercentageSymbol(settings?.Height);
+    var heightClass = BlockHelper.GetVerticalMinHeight(height);
+}
+
+<igloo-block-wrap settings="settings" content="content" tag-name="section" class="min-h-50 @heightClass">
+    <gmp-map
+        center="@(content.Latitude),@(content.Longitude)"
+        zoom="@(content.MapZoom != 0 ? content.MapZoom : "7")"
+        map-id="map-@(content.Key)"
+        style="height: @(height)vh">
+
+        @if (content.CustomMapPinIcon != null)
+        {
+            <gmp-advanced-marker
+                position="@(content.Latitude),@(content.Longitude)"
+                title="@(content.CustomMapPinIcon.Name)"
+                icon="@(content.CustomMapPinIcon.Url())">
+                <img src="@(content.CustomMapPinIcon.Url())" alt="@(content.CustomMapPinIcon.Name)" width="50" height="50" />
+            </gmp-advanced-marker>
+        }
+        else
+        {
+            <gmp-advanced-marker
+                position="@(content.Latitude),@(content.Longitude)"
+            ></gmp-advanced-marker>
+        }
+    </gmp-map>
+</igloo-block-wrap>

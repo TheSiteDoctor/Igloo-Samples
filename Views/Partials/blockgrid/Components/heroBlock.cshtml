@@ -1,0 +1,58 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.HeroBlock, ContentModels.HeroBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var order = ViewData.GetBlockOrder();
+
+    var hasButtons = content.Buttons?.Any() ?? false;
+    var containerClass = BlockHelper.GetContainerWidth(settings?.ContainerWidth);
+
+    var textColorClass = BlockHelper.IsLightColor(settings?.Palette?.TextColor?.ToString()) ? "light-color" : string.Empty;
+    var overlayClass = BlockHelper.IsLightColor(settings?.Palette?.TextColor?.ToString()) ? string.Empty : "overlay--light";
+
+    var height = BlockHelper.RemovePercentageSymbol(settings?.Height);
+    var heightClass = BlockHelper.GetVerticalMinHeight(height);
+    var overlayStrength = BlockHelper.RemovePercentageSymbol(settings?.OverlayStrength);
+    var textOverlayStrength = BlockHelper.RemovePercentageSymbol(settings?.TextOverlayStrength);
+
+    var verticalAlignment = BlockHelper.GetVerticalAlignment(settings?.VerticalTextAlignment);
+    var textAlignment = BlockHelper.GetTextRowAlignment(settings?.TextAlignment);
+    var textWidth = BlockHelper.GetColumnWidth(settings?.TextWidth);
+
+    var backgroundContent = new BackgroundContent { Content = content.Background?.Content, Height = height };
+}
+
+<igloo-block-wrap settings="settings" content="content" tag-name="section" class="position px-0 flex py-12 lg:py-16 max-w-full justify-items-center @(heightClass) @(verticalAlignment)">
+    <div class="relative w-full grow z-10">
+        <div class="@containerClass">
+            <div class="row @textAlignment">
+                <div class="hero__inner py-12 md:px-4 @textColorClass @textWidth">
+                    <div class="pre-head">@Html.Raw(content.PreHeading)</div>
+                    <igloo-heading heading="@content.Heading" class="mb-0"/>
+                    <div class="mt-6 text-lg">
+                        @Html.Raw(content.Text)
+                    </div>
+
+                    @if (hasButtons)
+                    {
+                        <igloo-button-list model="@content.Buttons" class="mt-8"></igloo-button-list>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_BackgroundContent" model="@backgroundContent" />
+
+    @if(!string.IsNullOrWhiteSpace(overlayStrength))
+    {
+        <div class="overlay @(overlayClass) opacity-@overlayStrength"></div>
+    }
+
+    @if (order == 0 && height == "100")
+    {
+        <i class="icon-scroll ph ph-caret-down @(overlayClass)" aria-hidden="true"></i>
+    }
+</igloo-block-wrap>

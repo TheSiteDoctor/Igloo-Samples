@@ -1,0 +1,34 @@
+﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.BreadcrumbsBlock, ContentModels.BreadcrumbsBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var containerClass = BlockHelper.GetContainerWidth(settings?.ContainerWidth);
+    var alignment = BlockHelper.GetTextRowAlignment(settings?.Alignment);
+    var breadcrumbs = Umbraco.AssignedContentItem.Ancestors().ToArray();
+    var position = 1;
+}
+
+<igloo-block-wrap settings="settings" content="content" tag-name="nav" aria-label="Breadcrumb">
+    <div class="@containerClass">
+        <ul class="row @alignment">
+            @foreach (var item in breadcrumbs.OrderBy(x => x.Level))
+            {
+                <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                    <a itemprop="item" href="@item.Url()">
+                        <span itemprop="name">@item.Name</span>
+                    </a>
+                    <meta itemprop="position" content="@position"/>
+                </li>
+                position++;
+            }
+            <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                <a itemprop="item" href="@Umbraco.AssignedContentItem.Url()">
+                    <span itemprop="name">@Umbraco.AssignedContentItem.Name</span>
+                </a>
+                <meta itemprop="position" content="@position"/>
+            </li>
+        </ul>
+    </div>
+</igloo-block-wrap>

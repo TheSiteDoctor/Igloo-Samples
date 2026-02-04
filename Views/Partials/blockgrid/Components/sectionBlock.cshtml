@@ -1,0 +1,18 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.SectionBlock, ContentModels.SectionBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var containerClass = BlockHelper.GetContainerWidth(settings?.ContainerWidth);
+    ViewData["containerWidth"] = settings?.ContainerWidth;
+
+    var compact = BlockHelper.GetCompact(settings?.Compact);
+    var removeGutter = settings?.RemoveGutter ?? false;
+}
+
+<igloo-block-wrap settings="settings" content="content" tag-name="section" class="@(compact) @(removeGutter ? "gap-0" : string.Empty)">
+    <div class="@containerClass">
+        @await Html.GetPreviewBlockGridItemAreaHtmlAsync(Model, "area")
+    </div>
+</igloo-block-wrap>

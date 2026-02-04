@@ -1,0 +1,39 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ContactInfoBlock, ContentModels.ContactInfoBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    if (content?.Items is null || content.Items.Any() == false)
+    {
+        return;
+    }
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <address>
+        @foreach (var item in content.Items)
+        {
+            var text = item.Content.Value<string>("text");
+            var icon = item.Content.Value<Our.Iconic.Core.Models.Icon>("icon");
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                continue;
+            }
+
+            switch (item.Content.ContentType.Alias)
+            {
+                case AddressComponent.ModelTypeAlias:
+                    <div class="flex gap-2 items-start mb-2">@icon?.RenderIcon() @Html.ReplaceLineBreaks(text)</div>
+                    break;
+                case EmailAddressComponent.ModelTypeAlias:
+                    <a class="flex gap-2 items-center mb-2" href="mailto:@text">@icon?.RenderIcon() @text</a>
+                    break;
+                case PhoneNumberComponent.ModelTypeAlias:
+                    <a class="flex gap-2 items-center mb-2" href="tel:@text">@icon?.RenderIcon() @text</a>
+                    break;
+            }
+        }
+    </address>
+</igloo-block-wrap>

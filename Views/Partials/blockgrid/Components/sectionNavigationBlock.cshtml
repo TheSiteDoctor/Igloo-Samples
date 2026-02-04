@@ -1,0 +1,39 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.SectionNavigationBlock, ContentModels.SectionNavigationBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var containerClass = BlockHelper.GetContainerWidth(settings?.ContainerWidth);
+
+    if (content?.Items is null || !content.Items.Any())
+    {
+        return;
+    }
+}
+
+<igloo-block-wrap settings="settings" content="content" tag-name="nav" class="py-0">
+    <ul class="@containerClass">
+        @foreach (var navItem in content.Items)
+        {
+            var item = navItem.Content as SectionNavigationItem;
+
+            if (item?.Link is null)
+            {
+                continue;
+            }
+
+            var active = item.Link.Url == Umbraco.AssignedContentItem.Url() ? "active" : "";
+
+            <li class="grow shrink">
+                <a class="@active"
+                   href="@item.Link.Url"
+                   target="@(item.Link.Target)"
+                   @if (item.Link.Target == "_blank") { <text> rel="noopener" </text> }>
+                    @item.Icon?.RenderIcon()
+                    <span>@item.LinkName</span>
+                </a>
+            </li>
+        }
+    </ul>
+</igloo-block-wrap>

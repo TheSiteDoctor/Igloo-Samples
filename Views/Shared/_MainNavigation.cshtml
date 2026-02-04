@@ -1,0 +1,105 @@
+@using Igloo.Models.Navigation
+@using Umbraco.Cms.Core
+@inherits UmbracoViewPage
+@inject IDesignsService _designsService;
+@inject ISettingsService _settingsService;
+@{
+    var site = Model.Root<Site>();
+    var siteSettings = _settingsService.Get();
+
+    var pageDesign = _designsService.GetDesignFromPage(Model.Key, null);
+
+    var expandDictionaryValue = Umbraco.GetDictionaryValue("Show Subpages");
+
+    //TODO Change "sitemap" and "search" to ModelTypeAlias once added
+    var docTypesToIgnore = new []
+    {
+        Settings.ModelTypeAlias,
+        "sitemap",
+        "search",
+        DesignsFolder.ModelTypeAlias,
+        GlobalContentHolder.ModelTypeAlias
+    };
+
+    var pageNodes = site?.Children()
+        ?.Where(x => x.IsVisible() && NavigationHelper.IsVisible(x) && !docTypesToIgnore.Contains(x.ContentType.Alias))
+        .Select(NavigationHelper.MapToViewModel)
+        .ToList() ?? [];
+
+    if (siteSettings?.CustomNavigation != null && siteSettings.CustomNavigation.Any())
+    {
+        pageNodes = [];
+
+        foreach (var navItem in siteSettings.CustomNavigation)
+        {
+            if (navItem.Content is NavigationItem nav)
+            {
+                pageNodes.Add(NavigationHelper.MapToViewModel(nav));
+            }
+            else if (navItem.Content is BigNavigationItem bigNav)
+            {
+                pageNodes.Add(NavigationHelper.MapToViewModel(bigNav));
+            }
+        }
+    }
+
+}
+
+<nav class="main-nav">
+    @{ await RenderPages(pageNodes);}
+</nav>
+
+@{
+    async Task RenderPages(IEnumerable<NavigationViewModel> pages)
+    {
+        <ul>
+            @foreach (var page in pages)
+            {
+                var selected = page.IsSelected(Model) ? "active" : string.Empty;
+                var hasChildren = NavigationHelper.HasChildren(page);
+                var hasGrid = NavigationHelper.HasGrid(page);
+
+                var target = page.Link != null ? page.Link.Target : "";
+                var link = page.Link?.Url ?? "#";
+                var name = page.Text;
+
+                <li class="@(selected) @(hasChildren ? "has-children" : string.Empty) @(hasGrid ? "has-grid" : string.Empty)">
+                    @if (hasChildren || hasGrid)
+                    {
+                        var navIcon = pageDesign?.NavItemIcon;
+
+                        <a class="main-nav-link" target="@(target)" href="@(link)">
+                            @(name)
+                            @(navIcon?.RenderIcon())
+                            <igloo-nav-expand-button class="expand" open-icon="pageDesign?.NavExpandIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="@expandDictionaryValue"/>
+                        </a>
+
+                        if (page.Children != null)
+                        {
+                            await RenderPages(page.Children!);
+                        }
+
+                        if (page.Grid != null)
+                        {
+                            await RenderGrid(page.Grid);
+                        }
+                    }
+                    else
+                    {
+                        <a class="main-nav-link" target="@(target)" href="@(link)">@(name)</a>
+                    }
+                </li>
+            }
+        </ul>
+    }
+
+    async Task RenderGrid(BlockGridModel grid)
+    {
+        var gridColumns = grid.GridColumns?.ToString() ?? "12";
+        <ul>
+            <div class="umb-block-grid container" data-grid-columns="@(gridColumns)" style="--umb-block-grid--grid-columns: @(gridColumns);">
+                @await Html.GetPreviewBlockGridItemsHtmlAsync(grid)
+            </div>
+        </ul>
+    }
+}

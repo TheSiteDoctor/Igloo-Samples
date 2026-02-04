@@ -1,0 +1,22 @@
+@inherits UmbracoViewPage
+@inject ISettingsService _settingsService;
+@{
+    var site = Model.Root();
+
+    var siteSettings = _settingsService.Get();
+    var siteName = siteSettings?.SiteName;
+    var companyName = siteSettings?.CompanyName;
+
+    var siteLogo = siteSettings?.SiteLogo;
+}
+
+<a id="logo" href="@site.Url()" class="logo" title="@siteName">
+    @if (siteLogo != null)
+    {
+        <picture>
+            <source type="image/webp" srcset="@(siteLogo.Url())?format=webp">
+            <img src="@siteLogo.Url()" alt="@companyName">
+        </picture>
+    }
+    <span>@siteName</span>
+</a>

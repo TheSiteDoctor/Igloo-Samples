@@ -1,0 +1,22 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.HeaderBlock, ContentModels.HeaderBlockSettings>>
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+    var hasButtons = content.Buttons?.Any() ?? false;
+
+    var headingAlignment = BlockHelper.GetTextAlignment(settings?.HeadingAlignment);
+    var textAlignment = BlockHelper.GetTextAlignment(settings?.TextAlignment);
+}
+
+<igloo-block-wrap settings="settings" content="content" class="@textAlignment">
+    @if (string.IsNullOrWhiteSpace(content.PreHeading?.ToHtmlString()) == false)
+    {
+        <div class="pre-head @headingAlignment">@Html.Raw(content.PreHeading)</div>
+    }
+    <igloo-heading heading="@content.Heading" class="@headingAlignment"/>
+    @Html.Raw(content.Text)
+    @if (hasButtons)
+    {
+        <igloo-button-list model="@content.Buttons" class="mt-4"></igloo-button-list>
+    }
+</igloo-block-wrap>

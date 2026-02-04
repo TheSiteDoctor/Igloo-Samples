@@ -1,0 +1,36 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.SliderBlock, ContentModels.SliderBlockSettings>>
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+    var horizontalOrientation = "horizontal";
+    var verticalOrientation = "vertical";
+    var orientation = string.IsNullOrWhiteSpace(settings.LayoutDirection) ?
+        horizontalOrientation : settings.LayoutDirection.ToLower();
+    var autoHeight = orientation == verticalOrientation;
+    var contentClass = settings.FillSlide ? string.Empty : "slide-padding";
+}
+
+<igloo-block-wrap class="p-0" settings="settings" content="content">
+    <swiper-container
+        autoplay-delay="@(settings.Autoplay > 0 ? settings.Autoplay : null)"
+        autoplay-pause-on-mouse-enter="@settings.PauseAutoplayOnHover"
+        loop="@settings.WrapAround"
+        effect="@(settings.FadeAnimation ? "fade" : "none" )"
+        fade-effect-cross-fade="true"
+        pagination-enabled="@settings.ShowPaginationDots"
+        pagination-clickable="true"
+        auto-height="@autoHeight"
+        navigation-enabled="@settings.ShowPrevNextArrows"
+        direction="@orientation"
+        class="@settings.CustomCssClasses slider"
+    >
+        @foreach (BlockListItem<SliderItem> item in content.Items)
+        {
+            <swiper-slide>
+                <div class="@contentClass">
+                    @await Html.GetBlockGridHtmlAsync(item.Content.Slide)
+                </div>
+            </swiper-slide>
+        }
+    </swiper-container>
+</igloo-block-wrap>

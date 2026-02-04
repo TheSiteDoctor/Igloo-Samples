@@ -1,0 +1,129 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.PodBlock, ContentModels.PodBlockSettings>>
+@inject IDesignsService _designsService;
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var pageDesign = _designsService.GetDesignFromPage(Umbraco.AssignedContentItem.Key, null);
+
+    var boxed = settings?.Boxed ?? false ? "boxed" : string.Empty;
+
+    var textAlignment = BlockHelper.GetTextAlignment(settings?.TextAlignment);
+    var horizontalTextAlignment = BlockHelper.GetTextRowAlignment(settings?.TextAlignment);
+    var verticalTextAlignment = BlockHelper.GetVerticalAlignment(settings?.VerticalTextAlignment);
+
+    var height = BlockHelper.RemovePercentageSymbol(settings?.Height);
+    var heightClass = BlockHelper.GetVerticalMinHeight(height);
+
+    var overlayStrength = BlockHelper.RemovePercentageSymbol(settings?.OverlayStrength);
+    var overlayClass = BlockHelper.IsLightColor(settings?.Palette?.TextColor?.ToString()) ? string.Empty : "overlay--light";
+
+    var hasIcon = content.Icon != null;
+    var hasMedia = content.Media != null;
+    BlockHelper.TryParseImagePosition(settings?.ImagePosition, out var imagePosition);
+    var imagePositionClass = BlockHelper.GetImagePositionClass(imagePosition);
+
+    var loadingState = "";
+    if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+    {
+        loadingState = "loaded";
+    }
+
+    var flexDirection = imagePosition is ImagePosition.Bottom or ImagePosition.Top ? "flex-col" : "flex-row";
+}
+
+<igloo-block-wrap settings="settings" content="content" class="@(boxed) h-full @(heightClass)">
+    @if (content.Link != null)
+    {
+        @:<a href="@(content.Link.Url)" target="@(content.Link.Target)" class="group flex w-full h-full">
+    }
+
+    <div class="flex @(flexDirection) @(textAlignment) @(horizontalTextAlignment) @(verticalTextAlignment) relative h-full z-10">
+
+        @if (hasMedia && imagePosition != ImagePosition.Background)
+        {
+            RenderMedia();
+        }
+        @if (hasIcon)
+        {
+            <div class="icon text-5xl @(imagePositionClass)">@content.Icon?.RenderIcon()</div>
+        }
+        <div class="content flex flex-col">
+            <igloo-heading heading="@content.Heading"/>
+            @Html.Raw(content.Text)
+            <igloo-button-list model="@content.Buttons" class="mt-4"/>
+        </div>
+    </div>
+
+    @if (hasMedia && imagePosition == ImagePosition.Background)
+    {
+        RenderBackgroundMedia();
+    }
+
+    @if(!string.IsNullOrWhiteSpace(overlayStrength))
+    {
+        <div class="overlay @(overlayClass) opacity-@overlayStrength"></div>
+    }
+
+    @if (content.Link != null)
+    {
+        @:</a>
+    }
+</igloo-block-wrap>
+
+@{
+    void RenderMedia()
+    {
+        var breakpoints = new[]
+        {
+            new { Width = 1000 },
+            new { Width = 750 },
+            new { Width = 500 },
+            new { Width = 300 }
+        };
+
+        <picture class="@(imagePositionClass) group-hover:scale-105 transition-transform duration-1000">
+            @foreach (var bp in breakpoints)
+            {
+                <text><source
+                          srcset="@content.Media?.GetCropUrl(bp.Width, quality: 80) @(bp.Width)w"
+                          media="(max-width: @bp.Width px)"></text>
+            }
+
+            <img src="@content.Media?.GetCropUrl(1000, quality: 80)"
+                 alt="@content.Heading"
+                 loading="lazy"
+                 class="w-full object-cover object-center @loadingState"/>
+        </picture>
+    }
+
+    void RenderBackgroundMedia()
+    {
+        var containerWidth = (string?)ViewData["containerWidth"];
+
+        var blockHeight = 0.5;
+
+        if (!string.IsNullOrWhiteSpace(height))
+        {
+            blockHeight = Convert.ToDouble(height) / 100;
+        }
+
+        var blockWidth = (double)Model.ColumnSpan / (Model.GridColumns ?? 12);
+
+        double targetWidth = BlockHelper.GetTargetWidth(pageDesign, containerWidth);
+        double targetHeight = 1080;
+
+        targetWidth *= blockWidth;
+        targetHeight *= blockHeight;
+
+        <picture class="absolute inset-0 w-full h-full group-hover:scale-105 transition-transform duration-1000">
+            <source
+                srcset="@content.Media?.GetCropUrl(Convert.ToInt32(targetWidth), Convert.ToInt32(targetHeight), quality: 80)">
+
+            <img src="@content.Media?.GetCropUrl(Convert.ToInt32(targetWidth), Convert.ToInt32(targetHeight), quality: 80)"
+                 alt="@content.Heading"
+                 loading="lazy"
+                 class="absolute inset-0 w-full h-full object-cover object-center @loadingState"/>
+        </picture>
+    }
+}

@@ -1,0 +1,29 @@
+﻿@inherits UmbracoViewPage
+@inject IDesignsService _designsService;
+@inject ISettingsService _settingsService;
+@{
+    var siteSettings = _settingsService.Get();
+
+    var footerClass = "";
+
+    var pageDesign = _designsService.GetDesignFromPage(Model.Key, null);
+    var containerClass = BlockHelper.GetContainerWidth(pageDesign?.FooterContainerWidth);
+
+    var palette = pageDesign?.FooterPalette?.Key.ToString() ?? "";
+    if (string.IsNullOrWhiteSpace(palette) == false)
+    {
+        footerClass += $" palette-{palette} {(ColorHelper.IsDark(pageDesign?.FooterPalette?.BackgroundColor?.Color) ? "dark" : "")}";
+    }
+}
+
+<footer class="footer @(footerClass) relative text-base">
+    @if (siteSettings?.Footer != null && (siteSettings?.Footer.Any() ?? false))
+    {
+        <div class="@(containerClass)">
+            @await Html.GetBlockGridHtmlAsync(siteSettings.Footer)
+        </div>
+    }
+
+    <partial name="_FooterBottom" model="@Model" />
+</footer>
+

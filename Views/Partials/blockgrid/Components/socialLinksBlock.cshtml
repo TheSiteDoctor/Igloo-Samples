@@ -1,0 +1,25 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.SocialLinksBlock, ContentModels.SocialLinksBlockSettings>>
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var size = settings.Size;
+    var borderRadius = settings.Style;
+
+    var sizeClass = $"button-{size}";
+    var radiusClass = BlockHelper.GetBorderRadiusClass(borderRadius);
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <ul class="flex gap-2">
+        @foreach (var itemBlock in content.Items)
+        {
+            var item = itemBlock.Content as SocialLinkItem;
+            <li>
+                <a class="button @sizeClass @radiusClass p-2" href="@item.Url" target="_blank" rel="noopener" title="@item.Label">
+                    @item.Icon?.RenderIcon(null, "icon flex")
+                </a>
+            </li>
+        }
+    </ul>
+</igloo-block-wrap>

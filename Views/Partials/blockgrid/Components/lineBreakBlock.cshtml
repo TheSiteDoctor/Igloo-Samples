@@ -1,0 +1,15 @@
+﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.LineBreakBlock, ContentModels.LineBreakBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var drawLine = content.DrawLine ? "line-divider relative after:absolute after:top-1/2 after:w-full after:h-px after:left-0" : "";
+}
+
+<igloo-block-wrap settings="settings" content="content" class="@(drawLine)"
+                  style="@(string.IsNullOrWhiteSpace(content.Height)
+                             ? null
+                             : $"height: {content.Height};")">
+
+</igloo-block-wrap>

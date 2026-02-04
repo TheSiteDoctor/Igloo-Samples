@@ -1,0 +1,12 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.GroupBlock, ContentModels.GroupBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var containerClass = BlockHelper.GetContainerWidth(settings?.ContainerWidth);
+}
+
+<igloo-block-wrap settings="settings" content="content" class="@containerClass">
+    @await Html.GetBlockGridItemAreaHtmlAsync(Model, "area")
+</igloo-block-wrap>

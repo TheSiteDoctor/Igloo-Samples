@@ -1,0 +1,16 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.TextBlock, ContentModels.TextBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var hasButtons = content.Buttons?.Any() ?? false;
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    @Html.Raw(content.Text)
+    @if (hasButtons)
+    {
+        <igloo-button-list model="@content.Buttons" class="mt-4"></igloo-button-list>
+    }
+</igloo-block-wrap>

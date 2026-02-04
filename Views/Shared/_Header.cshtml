@@ -1,0 +1,42 @@
+@inherits UmbracoViewPage
+@inject IDesignsService _designsService;
+@inject ISettingsService _settingsService;
+@{
+    var siteSettings = _settingsService.Get();
+
+    var headerClass = "";
+    var scrollClass = "";
+
+    headerClass += scrollClass;
+
+    var pageDesign = _designsService.GetDesignFromPage(Model.Key, null);
+    var containerClass = BlockHelper.GetContainerWidth(pageDesign?.HeaderContainerWidth);
+
+    var hasCallToActions = siteSettings?.HeaderCallToActions != null && siteSettings?.HeaderCallToActions?.Count > 0;
+
+    var palette = pageDesign?.HeaderPalette?.Key.ToString() ?? "";
+    if (string.IsNullOrWhiteSpace(palette) == false)
+    {
+        headerClass += $" palette-{palette} {(ColorHelper.IsDark(pageDesign?.HeaderPalette?.BackgroundColor?.Color) ? "dark" : "")}";
+    }
+}
+
+<header id="site-header" class="header @(headerClass) layout-01">
+
+    <div class="@containerClass">
+        <div class="row">
+            <partial name="_WebsiteLogo" model="@Model"/>
+
+            <igloo-nav-expand-button class="hamburger lg:hidden" open-icon="pageDesign?.MobileNavIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="Show navigation"/>
+
+            <partial name="_MainNavigation" model="@Model"/>
+
+            <partial name="_SecondaryNavigation" model="@Model"/>
+
+            @if (hasCallToActions)
+            {
+                <igloo-button-list model="@siteSettings!.HeaderCallToActions" class="cta-nav"></igloo-button-list>
+            }
+        </div>
+    </div>
+</header>

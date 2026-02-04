@@ -1,0 +1,13 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.UmbracoFormBlock, ContentModels.UmbracoFormBlockSettings>>
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    TempData["SubmitButtonPalette"] = content.SubmitButtonPalette?.Key.ToString() ?? string.Empty;
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <umb-forms-render form-id="@content.Form.Value"
+                      theme="@Constants.FormTheme"
+                      exclude-scripts="true"/>
+</igloo-block-wrap>

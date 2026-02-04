@@ -1,0 +1,19 @@
+@model Umbraco.Forms.Web.Models.FormViewModel
+
+@if (Model.MessageOnSubmitIsHtml)
+{
+    <div class="umbraco-forms-submitmessage-html text-center">
+        <svg aria-hidden="true" class="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"></circle><path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"></path></svg>
+        <p class="text-xl font-bold success-color">@Model.GetMessageOnSubmit()</p>
+    </div>
+}
+else
+{
+    <div>
+        <span class="umbraco-forms-submitmessage text-center">
+            <svg aria-hidden="true" class="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"></circle><path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"></path></svg>
+            <p class="text-2xl font-bold success-color">@Model.GetMessageOnSubmit()</p>
+        </span>
+    </div>
+}
+@await Html.PartialAsync("Forms/Themes/default/ScrollToFormScript")

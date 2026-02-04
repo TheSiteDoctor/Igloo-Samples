@@ -1,0 +1,66 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ImageBlock, ContentModels.ImageBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var breakpoints = new[]
+    {
+        new { Width = 2560 },
+        new { Width = 1920 },
+        new { Width = 1600 },
+        new { Width = 1080 },
+        new { Width = 750 },
+        new { Width = 500 },
+        new { Width = 300 }
+    };
+
+    var loadingState = "";
+    if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+    {
+        loadingState = "loaded";
+    }
+
+    var media = content.Image;
+
+    if (media is null)
+    {
+        return;
+    }
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <figure>
+
+        @if (content.Link is not null)
+        {
+            @:<a href="@content.Link.Url" target="@content.Link.Target" class="w-full h-full">
+        }
+
+        <picture class="block w-full h-full">
+            @foreach (var bp in breakpoints)
+            {
+                <text>
+                    <source
+                        srcset="@media.GetCropUrl(bp.Width, quality: 80) @(bp.Width)w"
+                        media="(max-width: @bp.Width px)"></text>
+            }
+
+            <img src="@media.GetCropUrl(1920, quality: 80)"
+                 alt="@content.Caption"
+                 loading="lazy"
+                 class="block w-full h-full @loadingState"/>
+        </picture>
+
+        @if (content.Link is not null)
+        {
+            @:</a>
+        }
+
+        @if (string.IsNullOrWhiteSpace(content.Caption) == false)
+        {
+            <figcaption class="text-sm italic text-center">@content.Caption</figcaption>
+        }
+    </figure>
+</igloo-block-wrap>
+

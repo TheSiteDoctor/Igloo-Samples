@@ -1,0 +1,25 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.AccordionBlock, ContentModels.AccordionBlockSettings>>
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var boxedColumnClass = settings.Boxed ? "boxed" : "";
+    var singleOpen = settings.SingleOpen;
+}
+
+<igloo-block-wrap settings="settings" content="content" class="@boxedColumnClass" data-single-open="@singleOpen.ToString().ToLower()">
+    @foreach (var itemBlock in content.Items)
+    {
+        var item = itemBlock.Content as AccordionItem;
+
+        <div class="group mb-4 transition-all ease duration-300 text-base">
+            <button class="group/acc-btn text-left w-full relative font-bold cursor-pointer p-4 pe-5">
+                @Html.Raw(item.Title)
+                <i class="ph ph-caret-down absolute right-4 top-1/2 -translate-y-1/2 text-xs opacity-50 transition-all ease duration-300 group-hover/acc-btn:opacity-100 in-focus:opacity-100 group-[.is-open]:rotate-180" aria-hidden="true"></i>
+            </button>
+            <div class="hidden group-[.is-open]:block p-4 pt-0">
+                @Html.Raw(item.Text)
+            </div>
+        </div>
+    }
+</igloo-block-wrap>

@@ -1,0 +1,39 @@
+﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.VideoBlock, ContentModels.VideoBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+    var videoUrl = content.Video != null ? content.Video.Url() : "";
+    var posterUrl = content.Poster != null ? content.Poster.Url() : "";
+    var mute = settings.Mute ? "muted" : "";
+    var autoplay = settings.Autoplay ? "autoplay playsinline muted" : "";
+    var hideControls = settings.HideControls ? "" : "controls";
+    var loop = settings.Loop ? "loop" : "";
+    var videoShadow = settings.VideoShadow ? "video-shadow" : "";
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <figure>
+        @if (string.IsNullOrWhiteSpace(content.VideoEmbedCode) && content.Video is not null)
+        {
+            <video class="video @videoShadow"
+                   @(mute)
+                   @(autoplay)
+                   @(hideControls)
+                   @(loop)
+                   @if (posterUrl != "")
+                   {
+                       <text> poster="@posterUrl" </text>
+                   }>
+                <source src="@(videoUrl)" type="video/mp4">
+            </video>
+        }
+        else if (!string.IsNullOrWhiteSpace(content.VideoEmbedCode))
+        {
+            @Html.Raw(content.VideoEmbedCode)
+        }
+        <figcaption class="text-sm italic text-center">
+            @content.Caption
+        </figcaption>
+    </figure>
+</igloo-block-wrap>

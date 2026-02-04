@@ -1,0 +1,50 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.LogosBlock, ContentModels.LogosBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var blackWhiteClass = settings?.BlackWhite ?? false ? "black-and-white" : "";
+
+    if (content.Items is null)
+    {
+        return;
+    }
+
+    var loadingState = "";
+    if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+    {
+        loadingState = "loaded";
+    }
+}
+
+<igloo-block-wrap settings="settings" content="content" class="@(blackWhiteClass)">
+    <ul class="flex flex-wrap justify-center items-center list-none">
+        @foreach (var logo in content.Items)
+        {
+            var logoContent = logo.Content as LogoItemComponent;
+
+            if (logoContent?.Image is null)
+            {
+                continue;
+            }
+
+            var width = string.IsNullOrWhiteSpace(logoContent.CustomWidth) ? "120px" : logoContent.CustomWidth;
+
+            <li class="p-2 md:p-4" style="width: @width">
+                @if (logoContent.Link is not null)
+                {
+                    @:<a href="@(logoContent.Link.Url)" target="@(logoContent.Link.Target)" title="@(logoContent.Link.Name)">
+                }
+
+                <img src="@logoContent.Image.Url()" loading="lazy" class="w-full @loadingState">
+
+                @if (logoContent.Link is not null)
+                {
+                    @:</a>
+                }
+            </li>
+
+        }
+    </ul>
+</igloo-block-wrap>

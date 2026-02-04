@@ -1,0 +1,130 @@
+﻿@using System.Globalization
+@using StackExchange.Profiling.Internal
+@inherits UmbracoViewPage
+@inject ISettingsService _settingsService;
+@inject IPublishedValueFallback _publishedValueFallback;
+@{
+    var site = Model.Root() as Site;
+    var page = new Page(Umbraco.AssignedContentItem, _publishedValueFallback);
+
+    var culture = System.Threading.Thread.CurrentThread.CurrentCulture.Name;
+
+    var siteSettings = _settingsService.Get(culture);
+    var siteName = siteSettings?.SiteName;
+
+    var title = (!string.IsNullOrWhiteSpace(page.MetaTitle) ? page.MetaTitle : page.Name) +
+        siteSettings?.TitleSignature;
+
+    var description = !string.IsNullOrWhiteSpace(page.MetaDescription) ?
+        page.MetaDescription : site?.MetaDescription;
+
+    var openGraphImage = string.Empty;
+    if (page.MetaImage != null)
+    {
+        openGraphImage = page.MetaImage.Url(mode: UrlMode.Absolute);
+    }
+    else if (site?.MetaImage != null)
+    {
+        openGraphImage = site?.MetaImage.Url(mode: UrlMode.Absolute);
+    }
+
+    var canonical = !string.IsNullOrWhiteSpace(page.OverrideCanonicalUrl)
+        ? page.OverrideCanonicalUrl : Model.Url(mode: UrlMode.Absolute);
+
+    var iconBackgroundColor = siteSettings?.IconBackgroundColor?.Color ?? "#FFFFFF";
+    var favicon = siteSettings?.Favicon;
+    var appIcon = siteSettings?.AppIcon;
+
+    var twitterUsername = siteSettings?.TwitterUsername;
+    var twitterUsernameString = "@" + twitterUsername?.Trim("@");
+
+    var email = siteSettings?.CompanyEmail;
+    var latitude = siteSettings?.CompanyLatitude;
+    var longitude =  siteSettings?.CompanyLongitude;
+    var phoneNumber =  siteSettings?.CompanyPhoneNumber;
+}
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>@(title)</title>
+<meta name="description" content="@(description)">
+
+<meta name="twitter:card" content="summary_large_image">
+
+@if (!string.IsNullOrWhiteSpace(twitterUsername))
+{
+    <meta name="twitter:site" content="@(twitterUsernameString)">
+}
+
+<meta property="og:title" content="@(title)" />
+<meta property="og:type" content="website" />
+<meta property="og:description" content="@(description)" />
+<meta property="og:image" content="@(openGraphImage)?upscale=false&width=1200" />
+<meta property="og:url" content="@(canonical)">
+
+@if (!string.IsNullOrWhiteSpace(siteName))
+{
+    <meta name="og:site_name" content="@siteName" />
+}
+
+@if (!string.IsNullOrWhiteSpace(email))
+{
+    <meta name="og:email" content="@email" />
+}
+
+@if (!string.IsNullOrWhiteSpace(latitude) && !string.IsNullOrWhiteSpace(longitude))
+{
+    <meta name="og:latitude" content="@latitude" />
+    <meta name="og:longitude" content="@longitude" />
+}
+
+@if (!string.IsNullOrWhiteSpace(phoneNumber))
+{
+    <meta name="og:phone_number" content="@phoneNumber" />
+}
+
+@if (appIcon != null)
+{
+    var fileType = appIcon.Value("umbracoExtension");
+
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="57x57" href="@appIcon.GetCropUrl(57, 57)">
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="60x60" href="@appIcon.GetCropUrl(60, 60)">
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="72x72" href="@appIcon.GetCropUrl(72, 72)">
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="76x76" href="@appIcon.GetCropUrl(76, 76)">
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="114x114" href="@appIcon.GetCropUrl(114, 114)">
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="120x120" href="@appIcon.GetCropUrl(120, 120)">
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="144x144" href="@appIcon.GetCropUrl(144, 144)">
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="152x152" href="@appIcon.GetCropUrl(152, 152)">
+    <link rel="apple-touch-icon" type="image/@(fileType)" sizes="180x180" href="@appIcon.GetCropUrl(180, 180)">
+}
+@if (favicon != null)
+{
+    var fileType = favicon.Value("umbracoExtension");
+
+    <link rel="icon" type="image/@(fileType)" href="@favicon.GetCropUrl(32, 32)">
+    <link rel="icon" type="image/@(fileType)" sizes="16x16" href="@favicon.GetCropUrl(16, 16)">
+    <link rel="icon" type="image/@(fileType)" sizes="32x32" href="@favicon.GetCropUrl(32, 32)">
+    <link rel="icon" type="image/@(fileType)" sizes="96x96" href="@favicon.GetCropUrl(96, 96)">
+    <link rel="icon" type="image/@(fileType)" sizes="192x192" href="@favicon.GetCropUrl(192, 192)">
+    <meta name="msapplication-TileColor" content="@(iconBackgroundColor)">
+    <meta name="msapplication-square70x70logo" content="@favicon.GetCropUrl(70, 70)" />
+    <meta name="msapplication-square150x150logo" content="@favicon.GetCropUrl(150, 150)" />
+    <meta name="msapplication-wide310x150logo" content="@favicon.GetCropUrl(310, 150)" />
+    <meta name="msapplication-square310x310logo" content="@favicon.GetCropUrl(310, 310)" />
+}
+
+@if (Model.Cultures.Count > 1)
+{
+    foreach (var (pageCulture, infos) in Model.Cultures)
+    {
+        CultureInfo ci = new CultureInfo(pageCulture);
+        <link rel="alternate" href="@Model.Url(pageCulture, mode: UrlMode.Absolute)" hreflang="@ci.Name" />
+    }
+}
+
+@if (page.HideFromSearchEngines)
+{
+    <meta name="robots" content="noindex, nofollow">
+}

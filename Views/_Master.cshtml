@@ -1,0 +1,79 @@
+@using Igloo
+@using Igloo.Services.Interfaces
+@using Igloo.Helpers
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Web.Common.PublishedModels
+@using Umbraco.Forms.Web
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@inject IDesignsService _designsService;
+@inject ISettingsService _settingsService;
+@{
+    Layout = null;
+
+    var lang = System.Threading.Thread.CurrentThread.CurrentCulture.TwoLetterISOLanguageName;
+    var culture = System.Threading.Thread.CurrentThread.CurrentCulture.Name;
+
+    var site = Model.Root<Site>();
+    var siteSettings = _settingsService.Get(culture);
+
+    // Get basic design settings from the homepage
+    var pageDesign = _designsService.GetDesignFromPage(Model.Key, null);
+    var pageDesignClass = pageDesign != null ? $"design-{pageDesign.Key}" : string.Empty;
+
+    var hasGoogleMaps = BlockHelper.HasGoogleMapBlock(Model.Value<BlockModelCollection<BlockGridItem>>("content"));
+    var googleMapsApiKey = siteSettings?.GoogleMapsApiKey;
+
+    var hideHeader = false;
+    if (Model.IsComposedOf(CompPageSettings.ModelTypeAlias))
+    {
+        hideHeader = ((ICompPageSettings)Model).HideHeader;
+    }
+
+    var hideFooter = false;
+    if (Model.IsComposedOf(CompPageSettings.ModelTypeAlias))
+    {
+        hideFooter = ((ICompPageSettings)Model).HideFooter;
+    }
+}
+
+<!doctype html>
+<html lang="@lang">
+<head>
+    <partial name="Shared/_Meta" />
+
+    <link rel="stylesheet" href="@Constants.BundlePath" asp-append-version="true"/>
+
+    @await RenderSectionAsync("Header", required: false)
+
+    @Html.RenderUmbracoFormDependencies(Url)
+</head>
+
+<body class="@pageDesignClass" data-siteid="@site.Id" data-culture="@culture">
+
+<div class="io-hook"></div>
+
+@if (!hideHeader)
+{
+    <partial name="_Header" model="@Model"/>
+}
+
+<main id="content">
+    @RenderBody()
+</main>
+
+@if (!hideFooter)
+{
+    <partial name="_Footer" model="@Model"/>
+}
+
+<script src="~/App_Plugins/Igloo/dist/js/igloo.js" type="application/javascript" asp-append-version="true"></script>
+
+@if (hasGoogleMaps)
+{
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=@(googleMapsApiKey)&loading=async&libraries=maps,marker"
+        async
+        defer></script>
+}
+</body>
+</html>

@@ -1,0 +1,71 @@
+@using Umbraco.Cms.Web.Common
+@using Igloo.Models.Forms
+@model ContactFormViewModel
+
+@inject IUmbracoHelperAccessor _umbracoHelperAccessor
+@{
+    _umbracoHelperAccessor.TryGetUmbracoHelper(out var UmbracoHelper);
+
+    var submitted = false;
+    if (bool.TryParse(TempData["ContactFormSuccess"]?.ToString() ?? "", out var success))
+    {
+        submitted = true;
+    }
+}
+
+@if (string.IsNullOrWhiteSpace(Model.ToEmail))
+{
+    <h6 class="error-color">You need to set an Contact Form Email in settings to use the contact form block.</h6>
+}
+else if (submitted)
+{
+    if (success)
+    {
+        <div class="text-center">
+            @Html.Raw(Model.MessageSentText)
+        </div>
+    }
+    else
+    {
+        <div asp-validation-summary="ModelOnly" class="error-color"></div>
+    }
+}
+else
+{
+    using (Html.BeginUmbracoForm("Submit", "IglooContactForm", FormMethod.Post, new { @class = "grid grid-cols-12 gap-8" }))
+    {
+        <input asp-for="ParentModelID" type="hidden" />
+        <input asp-for="Culture" type="hidden" />
+
+        <div class="col-span-12 md:col-span-6">
+            <label asp-for="Name">@UmbracoHelper?.GetDictionaryValue("Name") <span class="error-color">*</span></label>
+            <div class="relative">
+                <input asp-for="Name" autocomplete="name"  />
+                <i class="ph ph-check-circle" aria-hidden="true"></i>
+                <span asp-validation-for="Name" class="error-color"></span>
+            </div>
+        </div>
+
+        <div class="col-span-12 md:col-span-6">
+            <label asp-for="Email">@UmbracoHelper?.GetDictionaryValue("Email") <span class="error-color">*</span></label>
+            <div class="relative">
+                <input asp-for="Email" autocomplete="email" />
+                <i class="ph ph-check-circle" aria-hidden="true"></i>
+                <span asp-validation-for="Email" class="error-color"></span>
+            </div>
+        </div>
+
+        <div class="col-span-12">
+            <label for="Message">@UmbracoHelper?.GetDictionaryValue("Message") <span class="error-color">*</span></label>
+            <div class="relative">
+                <textarea asp-for="Message" rows="10" autocomplete="off"></textarea>
+                <i class="ph ph-check-circle" aria-hidden="true"></i>
+                <span asp-validation-for="Message" class="error-color"></span>
+            </div>
+        </div>
+
+        <div class="col-span-12">
+            <button class="@Model.ButtonClass" type="submit" data-umb="submit-forms-form">@UmbracoHelper?.GetDictionaryValue("Send Message")</button>
+        </div>
+    }
+}

@@ -1,0 +1,34 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.TabsBlock, ContentModels.TabsBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+    var tabsArea = Model.Areas.FirstOrDefault(a => a.Alias == "area");
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <ul class="tabs @Model.Settings.TabStyle-tabs flex flex-wrap text-sm font-medium text-center text-body">
+        @for (int i = 0; i < tabsArea.Count; i++)
+        {
+            var tabContent = tabsArea[i].Content as TabItem;
+            var initialSelectedClass = i == 0 ? "selected" : "";
+            <li class="tab me-2 cursor-pointer @initialSelectedClass" data-tab="@i">
+                <a href="#" class="inline-flex items-center justify-center gap-2">
+                    @if (tabContent.Icon is not null)
+                    {
+                        @tabContent.Icon?.RenderIcon()
+                    }
+                    @tabContent.Label
+                </a>
+            </li>
+        }
+    </ul>
+    @for (int i = 0; i < tabsArea.Count; i++)
+    {
+        var tab = tabsArea[i];
+        var initialHiddenClass = i == 0 ? "" : "hidden";
+        <div class="tab-panel @Model.Settings.TabStyle-tabs-panel @initialHiddenClass" data-pannel="@i">
+            @await Html.GetBlockGridItemAreaHtmlAsync(tab, "area")
+        </div>
+    }
+</igloo-block-wrap>

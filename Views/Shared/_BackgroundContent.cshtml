@@ -1,0 +1,82 @@
+@using Umbraco.Cms.Core.Models
+@model BackgroundContent
+@{
+    var blockHeight = 0.5;
+
+    if (!string.IsNullOrWhiteSpace(Model.Height))
+    {
+        blockHeight = Convert.ToDouble(Model.Height) / 100;
+    }
+
+    switch (Model.Content?.ContentType.Alias)
+    {
+        case PodBlock.ModelTypeAlias:
+        case MediaComponent.ModelTypeAlias:
+        {
+            var background = Model.Content;
+            var media = background?.Value<MediaWithCrops>("media");
+
+            if (media == null)
+            {
+                //Do nothing
+            }
+            else
+            {
+                if (media.Url().EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
+                {
+                    <div class="absolute inset-0 w-full h-full overflow-hidden">
+                        <video class="absolute min-w-full min-h-full max-w-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform"
+                               autoplay muted loop playsinline
+                               preload="metadata"
+                               poster="@media.GetCropUrl(1920, Convert.ToInt32(1080 * blockHeight), quality: 80)">
+                            <source src="@media.Url()" type="video/mp4" />
+                        </video>
+                    </div>
+                }
+                else
+                {
+                    var breakpoints = new[]
+                    {
+                        new { Width = 2560, Height = Convert.ToInt32(1440 * blockHeight) },
+                        new { Width = 1920, Height = Convert.ToInt32(1080 * blockHeight) },
+                        new { Width = 1600, Height = Convert.ToInt32(900 * blockHeight) },
+                        new { Width = 1080, Height = Convert.ToInt32(1920 * blockHeight) },
+                        new { Width = 750,  Height = Convert.ToInt32(1334 * blockHeight) }
+                    };
+
+                    var loadingState = "";
+                    if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+                    {
+                        loadingState = "loaded";
+                    }
+
+                    <picture class="absolute inset-0 w-full h-full">
+                        @foreach (var bp in breakpoints)
+                        {
+                            <text><source
+                                      srcset="@media.GetCropUrl(bp.Width, bp.Height, quality: 80) @(bp.Width)w"
+                                      media="(max-width: @bp.Width px)"></text>
+                        }
+
+                        <img src="@media.GetCropUrl(1920, Convert.ToInt32(1080 * blockHeight), quality: 80)"
+                             alt="Hero background"
+                             loading="lazy"
+                             class="absolute inset-0 w-full h-full object-cover object-center @loadingState"/>
+                    </picture>
+                }
+            }
+
+            break;
+        }
+        case EmbedComponent.ModelTypeAlias:
+        {
+            var background = Model.Content as EmbedComponent;
+            var embed = background?.Embed;
+
+            <div class="absolute inset-0 w-full h-full">
+                @Html.Raw(embed)
+            </div>
+            break;
+        }
+    }
+}

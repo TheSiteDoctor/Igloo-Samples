@@ -1,0 +1,11 @@
+﻿@using System.Globalization
+@model Igloo.Models.Forms.ContactFormViewModel
+@{
+    Layout = "~/Views/Emails/Layouts/_EmailLayout.cshtml";
+}
+
+<h4>New message from website:</h4>
+<b>Message received: </b> @DateTime.Now.ToString("dd MMMM yyyy HH:mm", CultureInfo.CurrentCulture)<br />
+<b>Name: </b>@Model.Name<br />
+<b>E-mail: </b>@Model.Email<br/>
+<b>Message: </b><br />@Model.Message

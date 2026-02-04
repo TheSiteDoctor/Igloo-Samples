@@ -1,0 +1,133 @@
+@using Igloo.TagHelpers
+@using Umbraco.Cms.Core.Models
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.NavigationListBlock, ContentModels.NavigationListBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var headingLink = content.HeadingLink;
+    var hasHeadingLink = headingLink is not null;
+
+    var levelsRendered = 0;
+    var levelsOfChildren = settings.LevelsOfChildren;
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    @if (!string.IsNullOrWhiteSpace(content.Heading))
+    {
+        <h3 class="h6 mb-2">
+            @if (hasHeadingLink)
+            {
+                <igloo-navigation-link model="@headingLink" label="@content.Heading"/>
+            }
+            else
+            {
+                @content.Heading
+            }
+        </h3>
+    }
+
+    <nav class="navigation navigation--level-@levelsOfChildren" data-expand="@(settings.DisableAutoExpand ? "false" : "true")">
+        <ul class="list-none p-0 m-0">
+            @foreach (var itemBlock in content.Items)
+            {
+                var item = itemBlock.Content as NavigationListItem;
+                var node = Umbraco.Content(item.Link.Udi);
+                await ListChildNodes(item, node, levelsRendered, levelsOfChildren);
+            }
+        </ul>
+    </nav>
+</igloo-block-wrap>
+
+
+@functions {
+    async Task ListChildNodes(NavigationListItem item, IPublishedContent root, int levelsRendered, decimal levelsOfChildren)
+    {
+        var content = Model.Content;
+        var settings = Model.Settings;
+        var label = item?.Label ?? item?.Link?.Name ?? root.Name;
+
+        if (item is not null && item.Link?.Udi is not null && item.Link?.Type is not LinkType.Content)
+        {
+            <li>
+                <igloo-navigation-link model="@item.Link" label="@item.Label"/>
+            </li>
+            return;
+        }
+
+        if (levelsOfChildren >= levelsRendered)
+        {
+            var children = root.Children()
+                .Where(x => x.IsVisible())
+                .Where(x => x?.ContentType?.Alias != "sitemap" && x?.ContentType?.Alias != "websiteSettings").ToList();
+
+            levelsRendered++;
+
+            if (settings.OnlyRenderChildren && levelsRendered == 0)
+            {
+                foreach (var child in children)
+                {
+                    await ListChildNodes(null, child, levelsRendered, levelsOfChildren);
+                }
+                return;
+            }
+
+            var isSelected = (item?.Link?.Url ?? root.Url()) == Umbraco.AssignedContentItem.Url();
+            <li class="@(isSelected ? "selected" : "")">
+                <div class="flex justify-between align-middle">
+                    @if (item?.Link is not null)
+                    {
+                        <igloo-navigation-link model="@item.Link" label="@label"/>
+                    }
+                    else
+                    {
+                        <a class="nav-link" href="@(root.Url())">
+                            @root.Name
+                        </a>
+                    }
+
+                    @if (children.Count > 0 && levelsOfChildren >= levelsRendered)
+                    {
+                        var expandLabel = Umbraco.GetDictionaryValue("Show Subpages");
+                        var expandClass = !settings.DisableAutoExpand ? "hidden" : "";
+                        <button class="@expandClass navigation-button navigation-button-expand button button-small cursor-pointer" aria-label="@expandLabel">
+                            @if (content.OpenIcon is not null)
+                            {
+                                @content.OpenIcon?.RenderIcon();
+                            }
+                            else
+                            {
+                                <i class ="ph ph-plus"></i>
+                            }
+                        </button>
+
+                        var collapseClass = !settings.DisableAutoExpand ? "" : "hidden";
+                        var collapseLabel = Umbraco.GetDictionaryValue("Hide Subpages");
+                        <button class="@collapseClass navigation-button navigation-button-collapse button button-small cursor-pointer" aria-label="@collapseLabel">
+                            @if (content.OpenIcon is not null)
+                            {
+                                @content.CloseIcon?.RenderIcon();
+                            }
+                            else
+                            {
+                                <i class ="ph ph-minus"></i>
+                            }
+                        </button>
+                    }
+                </div>
+                @if (children.Count > 0)
+                {
+                    var hiddenClass = !settings.DisableAutoExpand ? "" : "hidden";
+                    <ul class="@hiddenClass navigation-sub-list pl-4 group-[.is-open]:block">
+                        @foreach (var child in children)
+                        {
+                            await ListChildNodes(null, child, levelsRendered, levelsOfChildren);
+                        }
+                    </ul>
+                }
+            </li>
+        }
+    }
+
+}

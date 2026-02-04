@@ -1,0 +1,51 @@
+@using System.Globalization
+@inherits UmbracoViewPage
+@inject IDesignsService _designsService;
+@inject ISettingsService _settingsService;
+@{
+    var site = Model.Root<Site>();
+    var siteSettings = _settingsService.Get();
+
+    var pageDesign = _designsService.GetDesignFromPage(Model.Key, null);
+
+    var showLanguageSwitcher = !siteSettings?.DisableLanguagePicker ?? true;
+    var expandDictionaryValue = Umbraco.GetDictionaryValue("Show Subpages");
+}
+
+<nav class="secondary-nav">
+    <ul>
+        @if (showLanguageSwitcher)
+        {
+            if (site?.Cultures.Count > 1)
+            {
+                CultureInfo currentCi = System.Threading.Thread.CurrentThread.CurrentCulture;
+                var currentLanguageTitle = site?.LanguageName ?? Thread.CurrentThread.CurrentUICulture.NativeName;
+                var currentFlagUrl = site?.LanguageFlag?.Url() ?? site?.GetCulture()?.GetFlag();
+
+                <li class="language-selector has-children">
+                    <a href="#" class="main-nav-link" title="@currentLanguageTitle" data-culture="@currentCi.Name">
+                        <img loading='lazy' src="@currentFlagUrl" alt="@currentLanguageTitle"/>
+                        <span>@currentLanguageTitle</span>
+                        <igloo-nav-expand-button class="expand" open-icon="pageDesign?.NavExpandIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="@expandDictionaryValue" />
+                    </a>
+                    <ul id="languageDropdown">
+                        @foreach (var (culture, infos) in site.Cultures)
+                        {
+                            CultureInfo ci = new CultureInfo(culture);
+                            var title = site.Value("languageName", fallback: Fallback.ToDefaultValue, defaultValue: ci.NativeName, culture: ci.Name);
+                            var flagUrl = site.Value<IPublishedContent>("languageFlag", culture: ci.Name)?.Url() != null ? site.Value<IPublishedContent>("languageFlag", culture: ci.Name)?.Url() : infos.GetFlag();
+
+                            <li>
+                                <a href="@(site.Url(culture))" class="main-nav-link" title="@title" data-culture="@ci.Name">
+                                    <img loading='lazy' src="@flagUrl" alt="@title"/>
+                                    <span>@title</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </li>
+            }
+        }
+    </ul>
+</nav>
+
