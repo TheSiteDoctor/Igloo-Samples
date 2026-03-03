@@ -10,42 +10,49 @@
 
     var showLanguageSwitcher = !siteSettings?.DisableLanguagePicker ?? true;
     var expandDictionaryValue = Umbraco.GetDictionaryValue("Show Subpages");
+
+    var searchPage = site.FirstChild<Search>();
 }
 
 <nav class="secondary-nav">
     <ul>
-        @if (showLanguageSwitcher)
+        @if (searchPage != null)
         {
-            if (site?.Cultures.Count > 1)
-            {
-                CultureInfo currentCi = System.Threading.Thread.CurrentThread.CurrentCulture;
-                var currentLanguageTitle = site?.LanguageName ?? Thread.CurrentThread.CurrentUICulture.NativeName;
-                var currentFlagUrl = site?.LanguageFlag?.Url() ?? site?.GetCulture()?.GetFlag();
+            <li class="toggle-search">
+                <a class="main-nav-link" href="#" title="@Umbraco.GetDictionaryValue("Search")" aria-label="search">
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                </a>
+            </li>
+        }
 
-                <li class="language-selector has-children">
-                    <a href="#" class="main-nav-link" title="@currentLanguageTitle" data-culture="@currentCi.Name">
-                        <img loading='lazy' src="@currentFlagUrl" alt="@currentLanguageTitle"/>
-                        <span>@currentLanguageTitle</span>
-                        <igloo-nav-expand-button class="expand" open-icon="pageDesign?.NavExpandIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="@expandDictionaryValue" />
-                    </a>
-                    <ul id="languageDropdown">
-                        @foreach (var (culture, infos) in site.Cultures)
-                        {
-                            CultureInfo ci = new CultureInfo(culture);
-                            var title = site.Value("languageName", fallback: Fallback.ToDefaultValue, defaultValue: ci.NativeName, culture: ci.Name);
-                            var flagUrl = site.Value<IPublishedContent>("languageFlag", culture: ci.Name)?.Url() != null ? site.Value<IPublishedContent>("languageFlag", culture: ci.Name)?.Url() : infos.GetFlag();
+        @if (showLanguageSwitcher && site?.Cultures.Count > 1)
+        {
+            CultureInfo currentCi = System.Threading.Thread.CurrentThread.CurrentCulture;
+            var currentLanguageTitle = site?.LanguageName ?? Thread.CurrentThread.CurrentUICulture.NativeName;
+            var currentFlagUrl = site?.LanguageFlag?.Url() ?? site?.GetCulture()?.GetFlag();
 
-                            <li>
-                                <a href="@(site.Url(culture))" class="main-nav-link" title="@title" data-culture="@ci.Name">
-                                    <img loading='lazy' src="@flagUrl" alt="@title"/>
-                                    <span>@title</span>
-                                </a>
-                            </li>
-                        }
-                    </ul>
-                </li>
-            }
+            <li class="language-selector has-children">
+                <a href="#" class="main-nav-link" title="@currentLanguageTitle" data-culture="@currentCi.Name">
+                    <img loading='lazy' src="@currentFlagUrl" alt="@currentLanguageTitle"/>
+                    <span>@currentLanguageTitle</span>
+                    <igloo-nav-expand-button class="expand" open-icon="pageDesign?.NavExpandIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="@expandDictionaryValue"/>
+                </a>
+                <ul id="languageDropdown">
+                    @foreach (var (culture, infos) in site.Cultures)
+                    {
+                        CultureInfo ci = new CultureInfo(culture);
+                        var title = site.Value("languageName", fallback: Fallback.ToDefaultValue, defaultValue: ci.NativeName, culture: ci.Name);
+                        var flagUrl = site.Value<IPublishedContent>("languageFlag", culture: ci.Name)?.Url() != null ? site.Value<IPublishedContent>("languageFlag", culture: ci.Name)?.Url() : infos.GetFlag();
+
+                        <li>
+                            <a href="@(site.Url(culture))" class="main-nav-link" title="@title" data-culture="@ci.Name">
+                                <img loading='lazy' src="@flagUrl" alt="@title"/>
+                                <span>@title</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </li>
         }
     </ul>
 </nav>
-

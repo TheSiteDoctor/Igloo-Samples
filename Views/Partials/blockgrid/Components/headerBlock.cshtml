@@ -13,7 +13,11 @@
     {
         <div class="pre-head @headingAlignment">@Html.Raw(content.PreHeading)</div>
     }
-    <igloo-heading heading="@content.Heading" class="@headingAlignment"/>
+    @if (string.IsNullOrWhiteSpace(content.Heading?.Text) == false)
+    {
+        <igloo-heading heading="@content.Heading" class="@headingAlignment"/>
+    }
+
     @Html.Raw(content.Text)
     @if (hasButtons)
     {

@@ -1,0 +1,107 @@
+﻿@using Igloo.Helpers
+@using Igloo.Services.Interfaces
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Search>
+@inject ISettingsService _settingsService;
+@{
+    Layout = "_Master.cshtml";
+
+    var query = "";
+
+    if (Context.Request.Query.Keys.Contains("search")) {
+        query = Context.Request.Query["search"][0];
+    }
+
+    var baseClass = "searchBlock component";
+
+    var palette = Model.SearchPalette?.Key.ToString();
+    if (string.IsNullOrWhiteSpace(palette) == false)
+    {
+        baseClass += $" palette-{palette} {(ColorHelper.IsDark(Model.SearchPalette?.BackgroundColor?.Color) ? "dark" : "")}";
+    }
+
+    var buttonPalette = Model.LoadMoreButtonPalatte?.Key.ToString();
+    var buttonClass = "button button-default";
+    if (string.IsNullOrWhiteSpace(buttonPalette) == false)
+    {
+        buttonClass += $" variant-btn-{buttonPalette}";
+    }
+
+    var siteSettings = _settingsService.Get();
+
+    var searchGridView = siteSettings?.SearchGridView ?? false;
+    var searchPageAmount = siteSettings?.SearchPageAmount ?? 6;
+}
+
+<section class="@(baseClass)">
+    <div class="container">
+        <div class="row gap-4 justify-center">
+            <div class="basis-full md:basis-1/2">
+                <form action="@Model.Url()" class="search__form">
+                    <label for="page-search-input-inline" class="sr-only">@Umbraco.GetDictionaryValue("Search")</label>
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                    <input type="text" name="search" id="page-search-input-inline" class="search__input" value="@(query)" placeholder="@Umbraco.GetDictionaryValue("Search Placeholder")">
+                    <input type="hidden" name="amount" class="search-pagination-amount" value="@searchPageAmount" />
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="search-result-info">
+        @Umbraco.GetDictionaryValue("Your Search") <strong class="query">"@(query)"</strong> @Umbraco.GetDictionaryValue("Gave") <strong class="search-results-count"></strong> <strong class="search-results-count-label single">@Umbraco.GetDictionaryValue("Result")</strong> <strong class="search-results-count-label multi">@Umbraco.GetDictionaryValue("Results")</strong>
+    </div>
+
+    <div class="search-results">
+        @if (searchGridView)
+        {
+            <div class="container">
+                <div class="grid gap-4 grid-cols-1 md:grid-cols-3 justify-center search-result-container">
+                    <template>
+                        <article class="podBlock component boxed h-full search-result">
+                            <a href="" title="" tabindex="-1" class="group flex w-full h-full">
+                                <div class="flex flex-row justify-start items-start relative h-full z-10">
+                                    <picture class="order-first h-full img-container">
+                                        <img class="w-full h-full object-cover object-center" src="" alt="">
+                                    </picture>
+
+                                    <div class="content flex flex-col">
+                                        <h3 class="h5"><span class="heading"></span></h3>
+                                        <p></p>
+                                    </div>
+                                </div>
+                            </a>
+                        </article>
+                    </template>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="container container-small">
+                <div class="grid gap-4 grid-cols-1 search-result-container">
+                    <template>
+                        <article class="podBlock component boxed search-result">
+                            <div class="flex flex-row justify-start items-start relative z-10">
+                                <div class="content flex flex-col">
+                                    <h3 class="h5"><a href=""><span class="heading"></span></a></h3>
+                                    <p></p>
+                                </div>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </div>
+        }
+
+        <div class="search-empty">
+            <i class="ph ph-magnifying-glass text-7xl" aria-hidden="true"></i>
+            <h5>@Umbraco.GetDictionaryValue("No Results Found")</h5>
+        </div>
+
+        <div class="container container-small search-pagination-container">
+            <div class="row justify-center">
+                <button class="@(buttonClass)">@Umbraco.GetDictionaryValue("Load More")</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+@await Html.GetBlockGridHtmlAsync(Model, "content")

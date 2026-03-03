@@ -34,12 +34,19 @@
     {
         hideFooter = ((ICompPageSettings)Model).HideFooter;
     }
+
+    var search = site?.FirstChild<Search>();
 }
 
 <!doctype html>
 <html lang="@lang">
 <head>
-    <partial name="Shared/_Meta" />
+    <partial name="_Meta" />
+
+    @if (!string.IsNullOrWhiteSpace(pageDesign?.FontEmbed))
+    {
+        @Html.Raw(pageDesign.FontEmbed)
+    }
 
     <link rel="stylesheet" href="@Constants.BundlePath" asp-append-version="true"/>
 
@@ -48,7 +55,7 @@
     @Html.RenderUmbracoFormDependencies(Url)
 </head>
 
-<body class="@pageDesignClass" data-siteid="@site.Id" data-culture="@culture">
+<body class="@pageDesignClass" data-siteid="@site?.Id" data-culture="@culture">
 
 <div class="io-hook"></div>
 
@@ -66,6 +73,11 @@
     <partial name="_Footer" model="@Model"/>
 }
 
+@if (search != null)
+{
+    <partial name="_SearchModal" model="@Model"/>
+}
+
 <script src="~/App_Plugins/Igloo/dist/js/igloo.js" type="application/javascript" asp-append-version="true"></script>
 
 @if (hasGoogleMaps)
@@ -73,7 +85,8 @@
     <script
         src="https://maps.googleapis.com/maps/api/js?key=@(googleMapsApiKey)&loading=async&libraries=maps,marker"
         async
-        defer></script>
+        defer>
+    </script>
 }
 </body>
 </html>

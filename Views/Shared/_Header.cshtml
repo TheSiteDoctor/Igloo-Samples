@@ -4,6 +4,8 @@
 @{
     var siteSettings = _settingsService.Get();
 
+    var searchPage = Model.Root().Children<Search>()?.FirstOrDefault();
+
     var headerClass = "";
     var scrollClass = "";
 
@@ -19,15 +21,38 @@
     {
         headerClass += $" palette-{palette} {(ColorHelper.IsDark(pageDesign?.HeaderPalette?.BackgroundColor?.Color) ? "dark" : "")}";
     }
+
+    var layoutClass = pageDesign?.HeaderLayout ?? "layout-01";
+    var transparentHeader = pageDesign?.TransparentHeader ?? false;
+
+    if (transparentHeader)
+    {
+        headerClass += " header-transparent";
+    }
+
+    var showHeaderOnScroll = pageDesign?.ShowHeaderOnScroll ?? false;
+    if (showHeaderOnScroll)
+    {
+        headerClass += " header-scroll";
+    }
 }
 
-<header id="site-header" class="header @(headerClass) layout-01">
+<header id="site-header" class="header @(headerClass) @(layoutClass)">
 
     <div class="@containerClass">
         <div class="row">
             <partial name="_WebsiteLogo" model="@Model"/>
 
-            <igloo-nav-expand-button class="hamburger lg:hidden" open-icon="pageDesign?.MobileNavIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="Show navigation"/>
+            <div class="mobile-actions">
+                @if (searchPage != null)
+                {
+                    <button class="toggle-search lg:hidden" type="button" aria-label="Toggle Search">
+                        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                    </button>
+                }
+
+                <igloo-nav-expand-button class="hamburger lg:hidden" open-icon="pageDesign?.MobileNavIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="Show navigation"/>
+            </div>
 
             <partial name="_MainNavigation" model="@Model"/>
 

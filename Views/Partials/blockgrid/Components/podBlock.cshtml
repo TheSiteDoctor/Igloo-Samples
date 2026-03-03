@@ -82,7 +82,7 @@
             new { Width = 300 }
         };
 
-        <picture class="@(imagePositionClass) group-hover:scale-105 transition-transform duration-1000">
+        <picture class="@(imagePositionClass) @(content.Link != null ? "group-hover:scale-105 transition-transform duration-1000" : string.Empty)">
             @foreach (var bp in breakpoints)
             {
                 <text><source

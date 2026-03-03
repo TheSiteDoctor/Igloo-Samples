@@ -1,0 +1,52 @@
+﻿@inherits UmbracoViewPage
+@inject IDesignsService _designsService;
+@{
+    var searchPage = Model.Root().Children<Search>()?.FirstOrDefault();
+
+    if (searchPage == null)
+    {
+        return;
+    }
+
+    var modalClass = "search-nav";
+    var pageDesign = _designsService.GetDesignFromPage(Model.Key, null);
+    var palette = pageDesign?.HeaderPalette?.Key.ToString() ?? "";
+    if (string.IsNullOrWhiteSpace(palette) == false)
+    {
+        modalClass += $" palette-{palette} {(ColorHelper.IsDark(pageDesign?.HeaderPalette?.BackgroundColor?.Color) ? "dark" : "")}";
+    }
+
+    var buttonPalette = searchPage.LoadMoreButtonPalatte?.Key.ToString();
+    var buttonClass = "button button-default";
+    if (string.IsNullOrWhiteSpace(buttonPalette) == false)
+    {
+        buttonClass += $" variant-btn-{buttonPalette}";
+    }
+}
+<div class="@(modalClass)" role="dialog" arial-label="@Umbraco.GetDictionaryValue("Search")">
+
+    <div class="container">
+
+        <form action="@searchPage.Url()" class="search__form">
+            <label for="page-search-input" class="sr-only">@Umbraco.GetDictionaryValue("Search")</label>
+            <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+            <input type="text" autocomplete="off" name="search" id="page-search-input" required class="search__input" placeholder="@Umbraco.GetDictionaryValue("Search Placeholder")">
+            <div class="search__loader"></div>
+
+            <div class="search__autocomplete hide">
+                <div class="search__no-results hide">
+                    @Umbraco.GetDictionaryValue("No Results Found")
+                </div>
+
+                <ul class="search__suggest"></ul>
+                <button class="@(buttonClass)">@Umbraco.GetDictionaryValue("Show all results") <span class="search__result-count"></span></button>
+            </div>
+        </form>
+    </div>
+
+    <button class="search__close" title="@Umbraco.GetDictionaryValue("Close") (Esc)" tabindex="0"><i class="ph ph-x" aria-hidden="true"></i></button>
+
+</div>
+
+<button class="search-overlay"></button>
+

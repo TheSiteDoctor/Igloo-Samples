@@ -1,0 +1,27 @@
+﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.InstagramFeedBlock, ContentModels.InstagramFeedBlockSettings>>
+@inject ISettingsService _settingsService;
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var siteSettings = _settingsService.Get();
+
+    if (siteSettings == null)
+    {
+        return;
+    }
+
+    var instagramUsername = siteSettings.InstagramUsername;
+    var instagramAccessToken = siteSettings.InstagramAccessToken;
+
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <div class="instafeed gallery__group gallery__group--grid" id="instafeed-@(content.Key)"
+         data-token="@(instagramAccessToken)"
+         data-username="@(instagramUsername)"
+         data-count="@(content.ImageCount)"
+         data-link="@(content.LinkImages ? 1 : 0)"
+         data-icon="@(content.LinkToInstagramAccount ? 1 : 0)">
+    </div>
+</igloo-block-wrap>
