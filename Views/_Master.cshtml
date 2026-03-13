@@ -2,6 +2,7 @@
 @using Igloo.Services.Interfaces
 @using Igloo.Helpers
 @using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
 @using Umbraco.Cms.Web.Common.PublishedModels
 @using Umbraco.Forms.Web
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
@@ -53,9 +54,13 @@
     @await RenderSectionAsync("Header", required: false)
 
     @Html.RenderUmbracoFormDependencies(Url)
+
+    <igloo-site-scripts position="HeadBottom"></igloo-site-scripts>
 </head>
 
 <body class="@pageDesignClass" data-siteid="@site?.Id" data-culture="@culture">
+
+<igloo-site-scripts position="BodyTop"></igloo-site-scripts>
 
 <div class="io-hook"></div>
 
@@ -88,5 +93,27 @@
         defer>
     </script>
 }
+
+<igloo-site-scripts position="BodyBottom"></igloo-site-scripts>
+
+<script type="application/ld+json">
+    {
+    "@@context": "http://schema.org",
+    "@@type": "Organization",
+    "url": "@site?.Url(mode: UrlMode.Absolute)"
+    @if(siteSettings?.CompanyName.IsNullOrWhiteSpace() == false){
+        <text>,"name": "@siteSettings?.CompanyName"</text>
+    }
+    @if (siteSettings?.CompanyLogo?.Url().IsNullOrWhiteSpace() == false)
+    {
+        <text>,"logo": "@siteSettings?.CompanyLogo?.Url()"</text>
+    }
+
+    @if (siteSettings?.CompanyPhoneNumber.IsNullOrWhiteSpace() == false)
+    {
+        <text>,"telephone":"@siteSettings?.CompanyPhoneNumber"</text>
+    }
+    }
+</script>
 </body>
 </html>

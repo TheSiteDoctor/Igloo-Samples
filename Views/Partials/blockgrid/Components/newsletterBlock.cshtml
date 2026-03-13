@@ -1,0 +1,79 @@
+﻿@using System.Text.RegularExpressions
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.NewsletterBlock, ContentModels.NewsletterBlockSettings>>
+@inject ISettingsService _settingsService;
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var siteSettings = _settingsService.Get();
+
+    if (siteSettings == null)
+    {
+        return;
+    }
+
+    var thankYouMessage = Umbraco.GetDictionaryValue("Thank you");
+    var emailLabel = Umbraco.GetDictionaryValue("Email");
+
+    var submitted = false;
+    var pageId = Umbraco.AssignedContentItem.Id;
+    var newsletterEmailMarketingProvider = siteSettings.NewsletterEmailMarketingProvider ?? string.Empty;
+    var newsletterSubscriberListId = siteSettings.NewsletterDefaultSubscriberListId;
+
+    if (newsletterEmailMarketingProvider.IsNullOrWhiteSpace() || newsletterSubscriberListId.IsNullOrWhiteSpace())
+    {
+        return;
+    }
+
+    if (!content.SubscriberListId.IsNullOrWhiteSpace())
+    {
+        newsletterSubscriberListId = content.SubscriberListId;
+    }
+
+    var buttonClass = "button button-block button--default";
+    var buttonPalette = content.SubmitButtonPalette?.Key.ToString();
+    if (string.IsNullOrWhiteSpace(buttonPalette) == false)
+    {
+        buttonClass += $" variant-btn-{buttonPalette}";
+    }
+
+    var formId = $"newsletter-form-{pageId}-{content.Key}";
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <div id="@(formId)-success" class="umbraco-forms-submitmessage-html text-center" hidden>
+        <svg aria-hidden="true" class="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"></circle><path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"></path></svg>
+        <p class="text-xl font-bold success-color">@thankYouMessage</p>
+    </div>
+
+    <div id="@(formId)-wrap">
+        @using (Html.BeginUmbracoForm("Subscribe", "IglooNewsletter", FormMethod.Post, new { @id = formId, @class = "grid grid-cols-12 gap-8", data_newsletter_form = "" }))
+        {
+            <input type="hidden" name="ListId" value="@(newsletterSubscriberListId)"/>
+            <input type="hidden" name="PageId" value="@(pageId)"/>
+
+            <div class="col-span-12 md:col-span-6 md:col-start-4">
+                <label for="newsletter-email" class="sr-only">@emailLabel <span class="error-color">*</span></label>
+                <div class="input-wrapper">
+                    <div class="relative grow">
+                        <input id="newsletter-email" type="email" name="Email" autocomplete="email" required placeholder="@content.PlaceholderText"/>
+                        <i class="ph ph-check-circle" aria-hidden="true"></i>
+                        <span class="error-color field-validation-valid" data-valmsg-for="newsletter-email" data-valmsg-replace="true"></span>
+                    </div>
+                    <button class="@buttonClass" type="submit" aria-label="Sign up for newsletter">
+                        <i class="ph ph-paper-plane-tilt state-idle" aria-hidden="true"></i>
+                        <i class="ph ph-circle-notch state-loading animate-spin" aria-hidden="true" style="display:none"></i>
+                    </button>
+                </div>
+            </div>
+        }
+        <p id="@(formId)-error" class="text-center" hidden></p>
+
+        @if (!content.SmallText.IsNullOrWhiteSpace())
+        {
+            <p class="newsletter-disclaimer text-center">
+                <small>@content.SmallText</small>
+            </p>
+        }
+    </div>
+</igloo-block-wrap>
