@@ -1,0 +1,16 @@
+﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem<ContentModels.SearchNavAction>>
+@{
+    var site = Umbraco.AssignedContentItem.Root<Site>();
+    var searchPage = site?.FirstChild<Search>();
+
+    if (searchPage is null)
+    {
+        return;
+    }
+}
+
+<li class="toggle-search">
+    <a class="main-nav-link" href="#" title="@Umbraco.GetDictionaryValue("Search")" aria-label="search">
+        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+    </a>
+</li>

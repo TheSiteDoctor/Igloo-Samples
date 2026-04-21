@@ -49,7 +49,7 @@
         @Html.Raw(pageDesign.FontEmbed)
     }
 
-    <link rel="stylesheet" href="@Constants.BundlePath" asp-append-version="true"/>
+    <link rel="stylesheet" href="@Constants.CssBundlePath" asp-append-version="true"/>
 
     @await RenderSectionAsync("Header", required: false)
 
@@ -83,7 +83,7 @@
     <partial name="_SearchModal" model="@Model"/>
 }
 
-<script src="~/App_Plugins/Igloo/dist/js/igloo.js" type="application/javascript" asp-append-version="true"></script>
+<script src="@Constants.JsBundlePath" type="application/javascript" asp-append-version="true"></script>
 
 @if (hasGoogleMaps)
 {

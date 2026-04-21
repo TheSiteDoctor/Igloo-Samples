@@ -38,7 +38,7 @@
         @:<a href="@(content.Link.Url)" target="@(content.Link.Target)" class="group flex w-full h-full">
     }
 
-    <div class="flex @(flexDirection) @(textAlignment) @(horizontalTextAlignment) @(verticalTextAlignment) relative h-full z-10">
+    <div class="flex @(flexDirection) @(textAlignment) @(horizontalTextAlignment) @(verticalTextAlignment) overflow-hidden relative h-full z-10">
 
         @if (hasMedia && imagePosition != ImagePosition.Background)
         {
@@ -48,9 +48,13 @@
         {
             <div class="icon text-5xl @(imagePositionClass)">@content.Icon?.RenderIcon()</div>
         }
-        <div class="content flex flex-col">
+        <div class="content flex flex-col w-full z-10">
             <igloo-heading heading="@content.Heading"/>
-            @Html.Raw(content.Text)
+            @if (content.Text.IsNullOrWhiteSpace() == false)
+            {
+                @Html.Raw(content.Text)
+            }
+
             <igloo-button-list model="@content.Buttons" class="mt-4"/>
         </div>
     </div>

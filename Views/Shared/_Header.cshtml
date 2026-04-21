@@ -43,16 +43,19 @@
         <div class="row">
             <partial name="_WebsiteLogo" model="@Model"/>
 
-            <div class="mobile-actions">
-                @if (searchPage != null)
+            <ul class="mobile-actions lg:hidden">
+                @foreach (var block in siteSettings.MobileNavigationActions)
                 {
-                    <button class="toggle-search lg:hidden" type="button" aria-label="Toggle Search">
-                        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-                    </button>
+                    if (block?.ContentKey == null) { continue; }
+                    var data = block.Content;
+
+                    @await Html.PartialAsync("blocklist/Components/" + data.ContentType.Alias, block)
                 }
 
-                <igloo-nav-expand-button class="hamburger lg:hidden" open-icon="pageDesign?.MobileNavIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="Show navigation"/>
-            </div>
+                <li>
+                    <igloo-nav-expand-button class="hamburger" open-icon="pageDesign?.MobileNavIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="Show navigation"/>
+                </li>
+            </ul>
 
             <partial name="_MainNavigation" model="@Model"/>
 
