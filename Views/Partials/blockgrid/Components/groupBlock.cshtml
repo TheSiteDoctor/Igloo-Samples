@@ -5,8 +5,9 @@
     var content = Model.Content;
 
     var containerClass = BlockHelper.GetContainerWidth(settings?.ContainerWidth);
+var removeGutter = settings?.RemoveGutter ?? false;
 }
 
-<igloo-block-wrap settings="settings" content="content" class="@containerClass">
+<igloo-block-wrap settings="settings" content="content" class="@containerClass @(removeGutter ? "gap-0" : string.Empty)">
     @await Html.GetBlockGridItemAreaHtmlAsync(Model, "area")
 </igloo-block-wrap>

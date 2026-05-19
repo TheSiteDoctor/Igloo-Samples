@@ -35,7 +35,7 @@
 <igloo-block-wrap settings="settings" content="content" class="@(boxed) h-full @(heightClass)">
     @if (content.Link != null)
     {
-        @:<a href="@(content.Link.Url)" target="@(content.Link.Target)" class="group flex w-full h-full">
+        @:<a href="@(content.Link.Url)" target="@(content.Link.Target)" class="group flex w-full h-full overflow-hidden relative">
     }
 
     <div class="flex @(flexDirection) @(textAlignment) @(horizontalTextAlignment) @(verticalTextAlignment) overflow-hidden relative h-full z-10">
@@ -48,7 +48,8 @@
         {
             <div class="icon text-5xl @(imagePositionClass)">@content.Icon?.RenderIcon()</div>
         }
-        <div class="content flex flex-col w-full z-10">
+        
+        <div class="content flex flex-col w-full h-full z-10">
             <igloo-heading heading="@content.Heading"/>
             @if (content.Text.IsNullOrWhiteSpace() == false)
             {

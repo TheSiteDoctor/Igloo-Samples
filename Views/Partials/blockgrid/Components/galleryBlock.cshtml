@@ -1,0 +1,100 @@
+@using Umbraco.Cms.Core.Models
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.GalleryBlock, ContentModels.GalleryBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var removeGutter = settings.RemoveGutter ? "gallery__group--no-gap" : "";
+
+    var images = content.Media;
+    var group = Convert.ToInt32(content.Group ?? "2");
+    var groupDec = Convert.ToDecimal(group);
+    var imageCount = Convert.ToDecimal(images.Count());
+    decimal loopCount = content.SimpleGrid ? 1 : imageCount / groupDec;
+
+    var loadingState = "";
+    if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+    {
+        loadingState = "loaded";
+    }
+}
+
+<igloo-block-wrap settings="settings" content="content" class="gallery">
+    @for (var i = 0; i < Math.Ceiling(loopCount); i++)
+    {
+        var imageBatch = content.SimpleGrid ? images : images.ToList().Skip(group * i).Take(group);
+
+        <div class="gallery__group @(content.SimpleGrid ? "gallery__group--grid" : "gallery__group--"+imageBatch.Count()) @removeGutter">
+            @foreach (var mediaItem in imageBatch)
+            {
+                if (settings.DisableGalleryZoom == false)
+                {
+                    @:<a class="gallery__item glightbox" href="@mediaItem.Url()" data-gallery="gallery-@content.Key" data-lightbox>
+                }
+                else
+                {
+                    @:<div class="gallery__item">
+                }
+
+                if (mediaItem.Url().EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
+                {
+                    <div class="gallery__video">
+                        <video
+                            autoplay muted loop playsinline
+                            preload="metadata"
+                            loading="lazy">
+                            <source src="@mediaItem.Url()" type="video/mp4">
+                        </video>
+                    </div>
+                }
+                else
+                {
+                    RenderMedia(mediaItem);
+                }
+
+                if (settings.DisableGalleryZoom == false)
+                {
+                    @:</a>
+                }
+                else
+                {
+                    @:</div>
+                }
+            }
+        </div>
+    }
+</igloo-block-wrap>
+
+@{
+    void RenderMedia(MediaWithCrops? mediaItem)
+    {
+        if (mediaItem == null)
+        {
+            return;
+        }
+
+        var breakpoints = new[]
+        {
+            new { Width = 1000 },
+            new { Width = 750 },
+            new { Width = 500 },
+            new { Width = 300 }
+        };
+
+        <picture class="gallery__image" itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
+            @foreach (var bp in breakpoints)
+            {
+                <text><source
+                          srcset="@mediaItem?.GetCropUrl(bp.Width, quality: 80) @(bp.Width)w"
+                          media="(max-width: @bp.Width px)"></text>
+            }
+
+            <img src="@mediaItem?.GetCropUrl(1000, quality: 80)"
+                 alt="@mediaItem?.Name"
+                 itemprop="contentUrl"
+                 loading="lazy"
+                 class="w-full h-full object-cover object-center @loadingState"/>
+        </picture>
+    }
+}
