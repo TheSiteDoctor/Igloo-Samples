@@ -1,3 +1,4 @@
+@using Igloo.Enums
 @inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.PodBlock, ContentModels.PodBlockSettings>>
 @inject IDesignsService _designsService;
 @{
@@ -30,9 +31,11 @@
     }
 
     var flexDirection = imagePosition is ImagePosition.Bottom or ImagePosition.Top ? "flex-col" : "flex-row";
+
+    var imageBackground = imagePosition is ImagePosition.Background ? "img-background" : string.Empty;
 }
 
-<igloo-block-wrap settings="settings" content="content" class="@(boxed) h-full @(heightClass)">
+<igloo-block-wrap settings="settings" content="content" class="@(boxed) h-full @(heightClass) @(imageBackground)">
     @if (content.Link != null)
     {
         @:<a href="@(content.Link.Url)" target="@(content.Link.Target)" class="group flex w-full h-full overflow-hidden relative">
@@ -48,8 +51,8 @@
         {
             <div class="icon text-5xl @(imagePositionClass)">@content.Icon?.RenderIcon()</div>
         }
-        
-        <div class="content flex flex-col w-full h-full z-10">
+
+        <div class="content flex flex-col w-full h-full z-10 @(horizontalTextAlignment)">
             <igloo-heading heading="@content.Heading"/>
             @if (content.Text.IsNullOrWhiteSpace() == false)
             {
@@ -96,7 +99,7 @@
             }
 
             <img src="@content.Media?.GetCropUrl(1000, quality: 80)"
-                 alt="@content.Heading"
+                 alt="@content.Heading?.Text"
                  loading="lazy"
                  class="w-full object-cover object-center @loadingState"/>
         </picture>

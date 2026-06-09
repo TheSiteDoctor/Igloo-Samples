@@ -1,0 +1,10 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.PersonBlock, ContentModels.PersonBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <partial name="_Person" model="(Person: content.Person as Person, Settings: settings as ICompPersonDisplaySettings)" />
+</igloo-block-wrap>

@@ -1,0 +1,63 @@
+﻿@using Igloo.Services.Interfaces
+@using Igloo.Helpers
+@using Umbraco.Cms.Core.Models.PublishedContent
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@inject ISettingsService settingsService
+@{
+    Layout = "_Master.cshtml";
+
+    var root = Model.Root();
+
+    var settings = settingsService.Get();
+
+    var pageDesign = settings.BaseDesign as Design;
+
+    var palette = pageDesign?.Palettes.FirstOrDefault().Content as Palette;
+    var paletteKey = palette?.Key.ToString() ?? "";
+
+    var baseClass = $"html-sitemap";
+
+    if (string.IsNullOrWhiteSpace(paletteKey) == false)
+    {
+        baseClass += $" palette-{paletteKey} {(ColorHelper.IsDark(palette?.BackgroundColor?.Color) ? "dark" : "")}";
+    }
+}
+
+<section class="sectionBlock component @(baseClass)">
+    <div class="container">
+        <h1>@Model.Name</h1>
+
+        @if (root is not null)
+        {
+            <ul class="html-sitemap__list">
+                @{ RenderSitemapNode(root); }
+            </ul>
+        }
+    </div>
+</section>
+
+@functions {
+    private void RenderSitemapNode(IPublishedContent node)
+    {
+        var children = node.Children()
+            .Where(x =>
+                x.IsVisible()
+                && x.ContentType.CompositionAliases.Contains("compSeo")
+                && x.TemplateId != 0
+                && !x.Value<bool>("hideFromSearchEngines"))
+            .ToList();
+
+        <li>
+            <a href="@node.Url()">@node.Name</a>
+            @if (children.Any())
+            {
+                <ul>
+                    @foreach (var child in children)
+                    {
+                        RenderSitemapNode(child);
+                    }
+                </ul>
+            }
+        </li>
+    }
+}

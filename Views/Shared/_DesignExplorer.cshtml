@@ -1,0 +1,91 @@
+@inherits UmbracoViewPage
+@inject ISettingsService _settingsService
+@{
+    var settings = _settingsService.Get();
+
+    var showDesignExplorer = settings.ShowDesignExplorer;
+}
+
+@if (!showDesignExplorer && UmbracoContext?.InPreviewMode != true)
+{
+    return;
+}
+
+<div class="design-explorer" data-current-node="@Umbraco.AssignedContentItem.Key">
+    <button class="design-explorer__toggle button" title="Toggle Design Explorer" type="button">
+        <i class="ph ph-palette open" aria-hidden="true"></i>
+        <i class="ph ph-caret-right close" aria-hidden="true"></i>
+    </button>
+
+    <div class="design-explorer__panel" hidden>
+        <div class="design-explorer__status" data-design-explorer-status>
+            Loading design editor...
+        </div>
+
+        <div class="design-explorer__tabs" data-design-explorer-tabs hidden></div>
+
+        <div class="design-explorer__content" data-design-explorer-content role="tabpanel" hidden></div>
+
+        @if (UmbracoContext?.InPreviewMode == true)
+        {
+            <div class="design-explorer__footer" data-design-explorer-footer>
+                <button class="button button-success" type="button" data-design-explorer-save>Save</button>
+            </div>
+        }
+    </div>
+
+    <template data-template="tab-button">
+        <button class="design-explorer__tab" type="button" role="tab"></button>
+    </template>
+
+    <template data-template="tab-list">
+        <div class="design-explorer__tab-list" role="tablist"></div>
+    </template>
+
+    <template data-template="properties">
+        <div class="design-explorer__properties"></div>
+    </template>
+
+    <template data-template="group">
+        <section class="design-explorer__group">
+            <h5 class="design-explorer__group-title" data-slot="title"></h5>
+            <div class="design-explorer__properties" data-slot="properties"></div>
+        </section>
+    </template>
+
+    <template data-template="field">
+        <article class="design-explorer__field">
+            <div class="design-explorer__field-header">
+                <h6 class="design-explorer__field-label" data-slot="label"></h6>
+                <span class="design-explorer__badge" data-slot="badge" hidden>Read-only</span>
+                <p class="design-explorer__field-description" data-slot="description" hidden></p>
+            </div>
+            <div data-slot="editor"></div>
+        </article>
+    </template>
+
+    <template data-template="editor-placeholder">
+        <div class="design-explorer__editor-placeholder">
+            <span class="design-explorer__editor-placeholder-title" data-slot="title"></span>
+            <span class="design-explorer__editor-placeholder-subtitle">
+                Editor placeholder for <code data-slot="alias"></code>
+            </span>
+        </div>
+    </template>
+
+    <template data-template="block">
+        <details class="design-explorer__block">
+            <summary class="design-explorer__block-summary">
+                <span class="design-explorer__block-title" data-slot="title"></span>
+            </summary>
+            <div class="design-explorer__block-body" data-slot="body"></div>
+        </details>
+    </template>
+
+    <template data-template="empty">
+        <p class="design-explorer__empty" data-slot="message"></p>
+    </template>
+</div>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" asp-append-version="true" />
+<link rel="stylesheet" href="/App_Plugins/Igloo/dist/css/design-explorer.css" asp-append-version="true"/>
+<script src="/App_Plugins/Igloo/dist/js/design-explorer.js" asp-append-version="true"></script>

@@ -1,0 +1,133 @@
+@model (ContentModels.Person Person, ICompPersonDisplaySettings Settings)
+@{
+    var person = Model.Person;
+    var settings = Model.Settings;
+
+    if (person is null)
+    {
+        return;
+    }
+
+    var textAlignment = BlockHelper.GetTextAlignment(settings?.TextAlignment);
+
+    var boxed = settings?.Boxed ?? false ? "boxed" : string.Empty;
+
+    var socialLinkSizeClass = $"button-{settings.SocialLinkSize}";
+    var socialLinkRadiusClass = BlockHelper.GetBorderRadiusClass(settings.SocialLinkStyle);
+
+    var imageCircleClass = settings.CircleImage ? "rounded-full" : string.Empty;
+
+    var imageCircleWrapperClass = settings.CircleImage ? "circle-image" : string.Empty;
+
+    var loadingState = "";
+    if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+    {
+        loadingState = "loaded";
+    }
+}
+<div class="personBlock @textAlignment @boxed @imageCircleWrapperClass">
+    @if (person.Image != null)
+    {
+        RenderMedia();
+    }
+
+    <div class="content flex flex-col w-full">
+        <h3>@person.FullName</h3>
+        @if (!string.IsNullOrWhiteSpace(person.Title))
+        {
+            <h4 class="pre-head">@person.Title</h4>
+        }
+        @if (!person.Description.IsNullOrWhiteSpace() && !settings.HideDescription)
+        {
+            <p class="description mb-4">
+                @person.Description
+            </p>
+        }
+
+        <address>
+            @foreach (var item in person.ContactInfo)
+            {
+                var text = item.Content.Value<string>("text");
+                var icon = item.Content.Value<Our.Iconic.Core.Models.Icon>("icon");
+
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                switch (item.Content.ContentType.Alias)
+                {
+                    case AddressComponent.ModelTypeAlias:
+                        if (settings.HideAddress)
+                        {
+                            break;
+                        }
+                        <div class="flex gap-2 items-start mb-2">@icon?.RenderIcon() @Html.ReplaceLineBreaks(text)</div>
+                        break;
+                    case EmailAddressComponent.ModelTypeAlias:
+                        if (settings.HideEmail)
+                        {
+                            break;
+                        }
+
+                        <a class="flex gap-2 items-center mb-2" href="mailto:@text">@icon?.RenderIcon() @text</a>
+                        break;
+                    case PhoneNumberComponent.ModelTypeAlias:
+                        if (settings.HidePhoneNumbers)
+                        {
+                            break;
+                        }
+                        <a class="flex gap-2 items-center mb-2" href="tel:@text">@icon?.RenderIcon() @text</a>
+                        break;
+                }
+            }
+        </address>
+
+        @if (!settings.HideSocialLinks)
+        {
+            <ul class="socialLinksBlock flex gap-2">
+                @foreach (var itemBlock in person.SocialLinks)
+                {
+                    var item = itemBlock.Content as SocialLinkItem;
+                    if (item is null)
+                    {
+                        continue;
+                    }
+
+                    <li>
+                        <a class="button @socialLinkSizeClass @socialLinkRadiusClass p-2" href="@item.Url" target="_blank" rel="noopener" title="@item.Label">
+                            @item.Icon?.RenderIcon(null, "icon flex")
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+@{
+    void RenderMedia()
+    {
+        var breakpoints = new[]
+        {
+            new { Width = 1000 },
+            new { Width = 750 },
+            new { Width = 500 },
+            new { Width = 300 }
+        };
+
+        <picture class="image mb-4">
+            @foreach (var bp in breakpoints)
+            {
+                <text><source
+                          srcset="@Model.Person.Image?.GetCropUrl(bp.Width, bp.Width, quality: 80) @(bp.Width)w"
+                          media="(max-width: @bp.Width px)"></text>
+            }
+
+            <img src="@Model.Person.Image?.GetCropUrl(1000, 1000, quality: 80)"
+                 alt="@Model.Person.FullName"
+                 loading="lazy"
+                 class="@imageCircleClass w-full object-cover object-center @loadingState"/>
+        </picture>
+    }
+}

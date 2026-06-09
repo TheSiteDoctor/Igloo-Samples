@@ -1,0 +1,17 @@
+﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.PeopleBlock, ContentModels.PeopleBlockSettings>>
+
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var peoplePerRow = int.Parse(settings?.PeoplePerRow ?? "3");
+}
+
+<igloo-block-wrap settings="settings" content="content">
+    <div class="people-grid" style="--grid-column-count: @(peoplePerRow)">
+        @foreach (var person in content.People ?? [])
+        {
+            <partial name="_Person" model="(Person: person as Person, Settings: settings as ICompPersonDisplaySettings)" />
+        }
+    </div>
+</igloo-block-wrap>

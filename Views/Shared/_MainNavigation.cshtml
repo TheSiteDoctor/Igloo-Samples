@@ -11,14 +11,9 @@
 
     var expandDictionaryValue = Umbraco.GetDictionaryValue("Show Subpages");
 
-    //TODO Change "sitemap" and "search" to ModelTypeAlias once added
     var docTypesToIgnore = new []
     {
-        Settings.ModelTypeAlias,
-        "sitemap",
-        "search",
-        DesignsFolder.ModelTypeAlias,
-        GlobalContentHolder.ModelTypeAlias
+        Settings.ModelTypeAlias
     };
 
     var pageNodes = site?.Children()
@@ -96,10 +91,8 @@
     async Task RenderGrid(BlockGridModel grid)
     {
         var gridColumns = grid.GridColumns?.ToString() ?? "12";
-        <ul>
-            <div class="umb-block-grid container" data-grid-columns="@(gridColumns)" style="--umb-block-grid--grid-columns: @(gridColumns);">
-                @await Html.GetPreviewBlockGridItemsHtmlAsync(grid)
-            </div>
-        </ul>
+        <div class="umb-block-grid" data-grid-columns="@(gridColumns)" style="--umb-block-grid--grid-columns: @(gridColumns);">
+            @await Html.GetPreviewBlockGridItemsHtmlAsync(grid)
+        </div>
     }
 }

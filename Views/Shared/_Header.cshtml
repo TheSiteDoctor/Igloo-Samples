@@ -23,7 +23,8 @@
     }
 
     var layoutClass = pageDesign?.HeaderLayout ?? "layout-01";
-    var transparentHeader = pageDesign?.TransparentHeader ?? false;
+
+    var transparentHeader = BlockHelper.GetTransparentHeader(pageDesign, Model);
 
     if (transparentHeader)
     {
