@@ -3,7 +3,7 @@
 @{
     var settings = _settingsService.Get();
 
-    var showDesignExplorer = settings.ShowDesignExplorer;
+    var showDesignExplorer = settings?.ShowDesignExplorer ?? false;
 }
 
 @if (!showDesignExplorer && UmbracoContext?.InPreviewMode != true)

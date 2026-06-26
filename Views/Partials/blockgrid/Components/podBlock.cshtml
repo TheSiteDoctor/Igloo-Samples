@@ -9,9 +9,27 @@
 
     var boxed = settings?.Boxed ?? false ? "boxed" : string.Empty;
 
+    var hasIcon = content.Icon != null;
+    var hasMedia = content.Media != null;
+
+    BlockHelper.TryParseImagePosition(settings?.ImagePosition, out var imagePosition);
+    var imagePositionClass = BlockHelper.GetImagePositionClass(imagePosition);
+
+    // Top/Bottom stacks the block vertically (flex-col), which swaps the flex axes:
+    // justify-* drives the vertical axis and items-* drives the horizontal axis.
+    var isColumn = imagePosition is ImagePosition.Bottom or ImagePosition.Top;
+
     var textAlignment = BlockHelper.GetTextAlignment(settings?.TextAlignment);
-    var horizontalTextAlignment = BlockHelper.GetTextRowAlignment(settings?.TextAlignment);
-    var verticalTextAlignment = BlockHelper.GetVerticalAlignment(settings?.VerticalTextAlignment);
+
+    // Horizontal alignment: cross axis (items-*) when flex-col, main axis (justify-*) when flex-row.
+    var horizontalTextAlignment = isColumn
+        ? BlockHelper.GetItemsAlignment(settings?.TextAlignment)
+        : BlockHelper.GetTextRowAlignment(settings?.TextAlignment);
+
+    // Vertical alignment: main axis (justify-*) when flex-col, cross axis (items-*) when flex-row.
+    var verticalTextAlignment = isColumn
+        ? BlockHelper.GetJustifyAlignment(settings?.VerticalTextAlignment)
+        : BlockHelper.GetVerticalAlignment(settings?.VerticalTextAlignment);
 
     var height = BlockHelper.RemovePercentageSymbol(settings?.Height);
     var heightClass = BlockHelper.GetVerticalMinHeight(height);
@@ -19,29 +37,33 @@
     var overlayStrength = BlockHelper.RemovePercentageSymbol(settings?.OverlayStrength);
     var overlayClass = BlockHelper.IsLightColor(settings?.Palette?.TextColor?.ToString()) ? string.Empty : "overlay--light";
 
-    var hasIcon = content.Icon != null;
-    var hasMedia = content.Media != null;
-    BlockHelper.TryParseImagePosition(settings?.ImagePosition, out var imagePosition);
-    var imagePositionClass = BlockHelper.GetImagePositionClass(imagePosition);
-
     var loadingState = "";
     if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
     {
         loadingState = "loaded";
     }
 
-    var flexDirection = imagePosition is ImagePosition.Bottom or ImagePosition.Top ? "flex-col" : "flex-row";
+    var flexDirection = isColumn ? "flex-col" : "flex-row";
+
+    // The inner content wrapper is always flex-col, so its axes are fixed:
+    // justify-* for vertical, items-* for horizontal.
+    var contentVerticalAlignment = BlockHelper.GetJustifyAlignment(settings?.VerticalTextAlignment);
+    var contentHorizontalAlignment = BlockHelper.GetItemsAlignment(settings?.TextAlignment);
 
     var imageBackground = imagePosition is ImagePosition.Background ? "img-background" : string.Empty;
+
+    // For a background image the content overlays the whole block. Pin it with absolute inset-0
+    // so it fills the rendered (min-height) box — h-full would collapse against a min-height-only parent.
+    var contentLayout = imagePosition is ImagePosition.Background ? "absolute inset-0" : "relative w-full h-full";
 }
 
-<igloo-block-wrap settings="settings" content="content" class="@(boxed) h-full @(heightClass) @(imageBackground)">
+<igloo-block-wrap settings="settings" content="content" class="@(boxed) relative h-full @(heightClass) @(imageBackground)">
     @if (content.Link != null)
     {
-        @:<a href="@(content.Link.Url)" target="@(content.Link.Target)" class="group flex w-full h-full overflow-hidden relative">
+        @:<a href="@(content.Link.Url)" target="@(content.Link.Target)" class="group flex overflow-hidden @(contentLayout)">
     }
 
-    <div class="flex @(flexDirection) @(textAlignment) @(horizontalTextAlignment) @(verticalTextAlignment) overflow-hidden relative h-full z-10">
+    <div class="flex @(flexDirection) @(textAlignment) @(horizontalTextAlignment) @(verticalTextAlignment) overflow-hidden @(contentLayout) z-10">
 
         @if (hasMedia && imagePosition != ImagePosition.Background)
         {
@@ -52,7 +74,7 @@
             <div class="icon text-5xl @(imagePositionClass)">@content.Icon?.RenderIcon()</div>
         }
 
-        <div class="content flex flex-col w-full h-full z-10 @(horizontalTextAlignment)">
+        <div class="content flex flex-col w-full h-full z-10 @(contentVerticalAlignment) @(contentHorizontalAlignment)">
             <igloo-heading heading="@content.Heading"/>
             @if (content.Text.IsNullOrWhiteSpace() == false)
             {
@@ -90,7 +112,7 @@
             new { Width = 300 }
         };
 
-        <picture class="@(imagePositionClass) @(content.Link != null ? "group-hover:scale-105 transition-transform duration-1000" : string.Empty)">
+        <picture class="@(imagePositionClass) h-full @(content.Link != null ? "group-hover:scale-105 transition-transform duration-1000" : string.Empty)">
             @foreach (var bp in breakpoints)
             {
                 <text><source
@@ -101,7 +123,7 @@
             <img src="@content.Media?.GetCropUrl(1000, quality: 80)"
                  alt="@content.Heading?.Text"
                  loading="lazy"
-                 class="w-full object-cover object-center @loadingState"/>
+                 class="w-full h-full object-cover object-center @loadingState"/>
         </picture>
     }
 

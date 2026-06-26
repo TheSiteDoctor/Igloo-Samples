@@ -1,0 +1,119 @@
+﻿@using Igloo.Models.Navigation
+@inherits UmbracoViewPage
+@inject IDesignsService _designsService;
+@inject ISettingsService _settingsService;
+@inject Umbraco.Cms.Core.Security.IMemberManager _memberManager;
+@{
+    var siteSettings = _settingsService.Get();
+
+    var headerClass = "";
+
+    var expandDictionaryValue = Umbraco.GetDictionaryValue("Show Subpages");
+
+    var pageDesign = _designsService.GetDesignFromPage(Model.Key, null);
+    var containerClass = BlockHelper.GetContainerWidth(pageDesign?.HeaderContainerWidth);
+
+    var palette = pageDesign?.HeaderPalette?.Key.ToString() ?? "";
+    if (string.IsNullOrWhiteSpace(palette) == false)
+    {
+        headerClass += $" palette-{palette} {(ColorHelper.IsDark(pageDesign?.HeaderPalette?.BackgroundColor?.Color) ? "dark" : "")}";
+    }
+
+    var subHeaderLeft = GetNavigationViewModel( siteSettings?.SubHeaderLeft );
+    var subHeaderRight = GetNavigationViewModel( siteSettings?.SubHeaderRight );
+}
+<div class="pre-top @(headerClass)">
+    <div class="@containerClass">
+        <div class="row">
+            @if (siteSettings?.SubHeaderLeft != null)
+            {
+                <ul class="pre-top__list pre-top__list--left">
+                    @{ await RenderPages(subHeaderLeft); }
+                </ul>
+            }
+
+            @if (siteSettings?.SubHeaderRight != null)
+            {
+                <ul class="pre-top__list pre-top__list--right">
+                    @{ await RenderPages(subHeaderRight); }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+@{
+    List<NavigationViewModel> GetNavigationViewModel(BlockListModel? items)
+    {
+        var nodes = new List<NavigationViewModel>();
+
+        foreach (var navItem in items ?? Enumerable.Empty<BlockListItem>())
+        {
+            if (navItem.Content is not SubHeaderItem nav)
+            {
+                continue;
+            }
+
+            if (nav.Visibility == null || nav.Visibility == "Always"
+                                       || (nav.Visibility == "Logged Out" && !_memberManager.IsLoggedIn())
+                                       || (nav.Visibility == "Logged In" && _memberManager.IsLoggedIn()))
+            {
+                nodes.Add(NavigationHelper.MapToViewModel(nav));
+            }
+        }
+
+        return nodes;
+    }
+
+    async Task RenderPages(IEnumerable<NavigationViewModel> pages)
+    {
+        foreach (var page in pages)
+        {
+            var selected = page.IsSelected(Model) ? "active" : string.Empty;
+            var hasChildren = NavigationHelper.HasChildren(page);
+
+            var target = page.Link != null ? page.Link.Target : "";
+            var link = page.Link?.Url ?? "#";
+            var text = page.Text;
+
+            var isHighlight = page.IsHighlight;
+
+            if (_memberManager.IsLoggedIn())
+            {
+                var currentMember = await _memberManager.GetCurrentMemberAsync();
+                text = text.Replace("{MemberName}", currentMember?.Name);
+            }
+
+            <li class="@(selected) @(hasChildren ? "has-children" : string.Empty)">
+                @if (page.Link is not null)
+                {
+                    if (hasChildren)
+                    {
+                        var navIcon = pageDesign?.NavItemIcon;
+
+                        <a class="main-nav-link @(isHighlight ? "highlight" : string.Empty)" target="@(target)" href="@(link)">
+                            @(page.Icon?.RenderIcon())
+                            @(text)
+                            @(navIcon?.RenderIcon(null, "trailing-icon"))
+                        </a>
+
+                        if (page.Children != null)
+                        {
+                            <ul>
+                                @{ await RenderPages(page.Children!); }
+                            </ul>
+                        }
+                    }
+                    else
+                    {
+                        <a class="main-nav-link @(isHighlight ? "highlight" : string.Empty)" target="@(target)" href="@(link)">@(page.Icon?.RenderIcon()) @(text)</a>
+                    }
+                }
+                else
+                {
+                    <span class="nav-item @(isHighlight ? "highlight" : string.Empty)">@(page.Icon?.RenderIcon()) @(text)</span>
+                }
+            </li>
+        }
+    }
+}

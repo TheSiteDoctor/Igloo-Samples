@@ -3,6 +3,7 @@
 @inherits UmbracoViewPage
 @inject IDesignsService _designsService;
 @inject ISettingsService _settingsService;
+@inject Umbraco.Cms.Core.Security.IMemberManager _memberManager;
 @{
     var site = Model.Root<Site>();
     var siteSettings = _settingsService.Get();
@@ -37,7 +38,6 @@
             }
         }
     }
-
 }
 
 <nav class="main-nav">
@@ -56,7 +56,7 @@
 
                 var target = page.Link != null ? page.Link.Target : "";
                 var link = page.Link?.Url ?? "#";
-                var name = page.Text;
+                var text = page.Text;
 
                 <li class="@(selected) @(hasChildren ? "has-children" : string.Empty) @(hasGrid ? "has-grid" : string.Empty)">
                     @if (hasChildren || hasGrid)
@@ -64,8 +64,8 @@
                         var navIcon = pageDesign?.NavItemIcon;
 
                         <a class="main-nav-link" target="@(target)" href="@(link)">
-                            @(name)
-                            @(navIcon?.RenderIcon())
+                            @(text)
+                            @(navIcon?.RenderIcon(null, "trailing-icon"))
                             <igloo-nav-expand-button class="expand" open-icon="pageDesign?.NavExpandIcon" close-icon="pageDesign?.MobileNavCloseIcon" aria-label="@expandDictionaryValue"/>
                         </a>
 
@@ -81,7 +81,7 @@
                     }
                     else
                     {
-                        <a class="main-nav-link" target="@(target)" href="@(link)">@(name)</a>
+                        <a class="main-nav-link" target="@(target)" href="@(link)">@(text)</a>
                     }
                 </li>
             }

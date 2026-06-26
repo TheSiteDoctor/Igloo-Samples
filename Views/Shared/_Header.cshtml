@@ -1,6 +1,8 @@
+@using Igloo.Models.Navigation
 @inherits UmbracoViewPage
 @inject IDesignsService _designsService;
 @inject ISettingsService _settingsService;
+@inject Umbraco.Cms.Core.Security.IMemberManager _memberManager;
 @{
     var siteSettings = _settingsService.Get();
 
@@ -10,6 +12,8 @@
     var scrollClass = "";
 
     headerClass += scrollClass;
+
+    var expandDictionaryValue = Umbraco.GetDictionaryValue("Show Subpages");
 
     var pageDesign = _designsService.GetDesignFromPage(Model.Key, null);
     var containerClass = BlockHelper.GetContainerWidth(pageDesign?.HeaderContainerWidth);
@@ -45,7 +49,8 @@
             <partial name="_WebsiteLogo" model="@Model"/>
 
             <ul class="mobile-actions lg:hidden">
-                @foreach (var block in siteSettings.MobileNavigationActions)
+
+                @foreach (var block in siteSettings?.MobileNavigationActions ?? Enumerable.Empty<BlockListItem>())
                 {
                     if (block?.ContentKey == null) { continue; }
                     var data = block.Content;
@@ -60,6 +65,20 @@
 
             <partial name="_MainNavigation" model="@Model"/>
 
+            @if (siteSettings?.EnableSubHeader ?? false)
+            {
+                var subHeaderLeft = GetNavigationViewModel( siteSettings?.SubHeaderLeft );
+                var subHeaderRight = GetNavigationViewModel( siteSettings?.SubHeaderRight );
+
+                <nav class="sub-nav">
+                    <ul>
+                        @{ await RenderPages(subHeaderLeft); }
+
+                        @{ await RenderPages(subHeaderRight); }
+                    </ul>
+                </nav>
+            }
+
             <partial name="_SecondaryNavigation" model="@Model"/>
 
             @if (hasCallToActions)
@@ -69,3 +88,80 @@
         </div>
     </div>
 </header>
+
+@{
+    List<NavigationViewModel> GetNavigationViewModel(BlockListModel? items)
+    {
+        var nodes = new List<NavigationViewModel>();
+
+        foreach (var navItem in items ?? Enumerable.Empty<BlockListItem>())
+        {
+            if (navItem.Content is not SubHeaderItem nav)
+            {
+                continue;
+            }
+
+            if (nav.Visibility == null || nav.Visibility == "Always"
+                                       || (nav.Visibility == "Logged Out" && !_memberManager.IsLoggedIn())
+                                       || (nav.Visibility == "Logged In" && _memberManager.IsLoggedIn()))
+            {
+                nodes.Add(NavigationHelper.MapToViewModel(nav));
+            }
+        }
+
+        return nodes;
+    }
+
+    async Task RenderPages(IEnumerable<NavigationViewModel> pages)
+    {
+        foreach (var page in pages)
+        {
+            var selected = page.IsSelected(Model) ? "active" : string.Empty;
+            var hasChildren = NavigationHelper.HasChildren(page);
+
+            var target = page.Link != null ? page.Link.Target : "";
+            var link = page.Link?.Url ?? "#";
+            var text = page.Text;
+
+            if (_memberManager.IsLoggedIn())
+            {
+                var currentMember = await _memberManager.GetCurrentMemberAsync();
+                text = text.Replace("{MemberName}", currentMember?.Name);
+            }
+
+            if (page.Link is null)
+            {
+                continue;
+            }
+
+            <li class="lg:hidden @selected @(hasChildren ? "has-children" : string.Empty)">
+                @if (hasChildren)
+                {
+                    var navIcon = pageDesign?.NavItemIcon;
+
+                    <a class="main-nav-link" target="@target" href="@link">
+                        @(page.Icon?.RenderIcon())
+                        @text
+                        @navIcon?.RenderIcon(null, "trailing-icon")
+                        <igloo-nav-expand-button class="expand" open-icon="pageDesign?.NavExpandIcon"
+                                                 close-icon="pageDesign?.MobileNavCloseIcon"
+                                                 aria-label="@expandDictionaryValue"/>
+                    </a>
+
+                    if (page.Children != null)
+                    {
+                        <ul>
+                            @{
+                                await RenderPages(page.Children!);
+                            }
+                        </ul>
+                    }
+                }
+                else
+                {
+                    <a class="main-nav-link" target="@target" href="@link">@(page.Icon?.RenderIcon()) @text</a>
+                }
+            </li>
+        }
+    }
+}
