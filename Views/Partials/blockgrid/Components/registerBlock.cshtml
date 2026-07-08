@@ -1,0 +1,61 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.RegisterBlock, ContentModels.RegisterBlockSettings>>
+@using Igloo.Models.Forms
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var buttonClass = "button button-block button--default";
+    var buttonPalette = content.SubmitButtonPalette?.Key.ToString();
+    if (string.IsNullOrWhiteSpace(buttonPalette) == false)
+    {
+        buttonClass += $" variant-btn-{buttonPalette}";
+    }
+
+    var redirectUrl = settings?.RedirectUrl?.Url;
+
+    // Read the post-registration success flag once here so the heading/intro are hidden on success.
+    var submitted = bool.TryParse(TempData["RegisterFormSuccess"]?.ToString() ?? "", out var success) && success;
+
+    var registerModel = new MemberRegisterViewModel
+    {
+        RedirectUrl = redirectUrl,
+        ShowPasswordToggle = !(settings?.HidePasswordToggle ?? false),
+        ButtonClass = buttonClass,
+        SuccessMessageHeading = content.SuccessMessageHeading,
+        SuccessMessageText = content.SuccessMessageText,
+        Submitted = submitted,
+    };
+
+    var hasImage = content.Background?.Content != null;
+    var backgroundContent = new BackgroundContent { Content = content.Background?.Content, Height = "100" };
+}
+
+<igloo-block-wrap settings="settings" content="content" tag-name="section" class="account-form">
+    <div class="account-form__inner">
+        <div class="account-form__content">
+            @if (!submitted)
+            {
+                if (string.IsNullOrWhiteSpace(content.Heading?.Text) == false)
+                {
+                    <igloo-heading heading="@content.Heading" class="mb-0"/>
+                }
+
+                if (string.IsNullOrWhiteSpace(content.Text.ToString()) == false)
+                {
+                    <div class="mt-4">
+                        @Html.Raw(content.Text)
+                    </div>
+                }
+            }
+
+            <partial name="_RegisterFormPartial" model="registerModel"/>
+        </div>
+    </div>
+
+    @if (hasImage)
+    {
+        <div class="account-form__media">
+            <partial name="_BackgroundContent" model="@backgroundContent"/>
+        </div>
+    }
+</igloo-block-wrap>

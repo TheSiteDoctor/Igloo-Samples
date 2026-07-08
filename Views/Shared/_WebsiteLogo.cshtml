@@ -14,7 +14,7 @@
     @if (siteLogo != null)
     {
         <picture>
-            <source type="image/webp" srcset="@(siteLogo.Url())?format=webp">
+            <source type="image/webp" srcset="@siteLogo.GetCropUrl(furtherOptions: "&format=webp")">
             <img src="@siteLogo.Url()" alt="@companyName">
         </picture>
     }

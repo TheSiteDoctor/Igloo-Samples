@@ -9,5 +9,5 @@
 }
 
 <igloo-block-wrap settings="settings" content="content" class="@containerClass @(removeGutter ? "gap-0" : string.Empty)">
-    @await Html.GetBlockGridItemAreaHtmlAsync(Model, "area")
+    @await Html.GetPreviewBlockGridItemAreaHtmlAsync(Model, "area")
 </igloo-block-wrap>

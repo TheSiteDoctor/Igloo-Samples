@@ -78,7 +78,9 @@
             <igloo-heading heading="@content.Heading"/>
             @if (content.Text.IsNullOrWhiteSpace() == false)
             {
-                @Html.Raw(content.Text)
+                <div class="rich-text">
+                    @Html.Raw(content.Text)
+                </div>
             }
 
             <igloo-button-list model="@content.Buttons" class="mt-4"/>

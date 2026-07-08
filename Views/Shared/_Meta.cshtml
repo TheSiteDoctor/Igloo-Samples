@@ -21,11 +21,11 @@
     var openGraphImage = string.Empty;
     if (page.MetaImage != null)
     {
-        openGraphImage = page.MetaImage.Url(mode: UrlMode.Absolute);
+        openGraphImage = page.MetaImage.GetCropUrl(width: 1200, furtherOptions: "&upscale=false", urlMode: UrlMode.Absolute) ?? string.Empty;
     }
     else if (site?.MetaImage != null)
     {
-        openGraphImage = site?.MetaImage.Url(mode: UrlMode.Absolute);
+        openGraphImage = site?.MetaImage.GetCropUrl(width: 1200, furtherOptions: "&upscale=false", urlMode: UrlMode.Absolute) ?? string.Empty;
     }
 
     var canonical = !string.IsNullOrWhiteSpace(page.OverrideCanonicalUrl)
@@ -61,7 +61,7 @@
 <meta property="og:title" content="@(title)" />
 <meta property="og:type" content="website" />
 <meta property="og:description" content="@(description)" />
-<meta property="og:image" content="@(openGraphImage)?upscale=false&width=1200" />
+<meta property="og:image" content="@(openGraphImage)" />
 <meta property="og:url" content="@(canonical)">
 
 @if (!string.IsNullOrWhiteSpace(siteName))

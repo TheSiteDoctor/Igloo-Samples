@@ -4,6 +4,10 @@
     var content = Model.Content;
 
     var height = BlockHelper.RemovePercentageSymbol(settings?.Height);
+    if (string.IsNullOrWhiteSpace(height))
+    {
+        height = "25";
+    }
     var heightClass = BlockHelper.GetVerticalMinHeight(height);
 }
 

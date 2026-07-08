@@ -1,0 +1,81 @@
+@using Igloo.Controllers
+@using Igloo.Models.Forms
+@model MemberRegisterViewModel
+
+@inject IUmbracoHelperAccessor _umbracoHelperAccessor
+@{
+    _umbracoHelperAccessor.TryGetUmbracoHelper(out var UmbracoHelper);
+}
+
+@if (Model.Submitted)
+{
+    <div class="text-center">
+        <svg aria-hidden="true" class="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"></circle><path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"></path></svg>
+        @if (string.IsNullOrWhiteSpace(Model.SuccessMessageHeading) == false)
+        {
+            <h4 class="success-color">@Model.SuccessMessageHeading</h4>
+        }
+        @Html.Raw(Model.SuccessMessageText)
+    </div>
+}
+else
+{
+    using (Html.BeginUmbracoForm<IglooMemberController>(nameof(IglooMemberController.Register), FormMethod.Post, new { @class = "register-form mt-4" }))
+    {
+        <input asp-for="RedirectUrl" type="hidden"/>
+        <input asp-for="ShowPasswordToggle" type="hidden"/>
+
+        <div asp-validation-summary="ModelOnly" class="error-color"></div>
+
+        <div class="mb-4">
+            <label asp-for="Name">@UmbracoHelper?.GetDictionaryValue("Name")</label>
+            <input asp-for="Name" autocomplete="name"/>
+            <span asp-validation-for="Name" class="error-color"></span>
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="Email">@UmbracoHelper?.GetDictionaryValue("Email")</label>
+            <input asp-for="Email" type="email" autocomplete="email" required/>
+            <span asp-validation-for="Email" class="error-color"></span>
+        </div>
+
+        <div class="password-input mb-4">
+            <label asp-for="Password">@UmbracoHelper?.GetDictionaryValue("Password")</label>
+            @if (Model.ShowPasswordToggle)
+            {
+                <button type="button" class="password-input__show"><i class="ph ph-eye" aria-hidden="true"></i> @UmbracoHelper?.GetDictionaryValue("Show Password")</button>
+                <button type="button" class="password-input__hide" style="display: none;"><i class="ph ph-eye-slash" aria-hidden="true"></i> @UmbracoHelper?.GetDictionaryValue("Hide Password")</button>
+            }
+            <input asp-for="Password" autocomplete="new-password" required/>
+            <span asp-validation-for="Password" class="error-color"></span>
+        </div>
+
+        <div class="password-input mb-4">
+            <label asp-for="ConfirmPassword">@UmbracoHelper?.GetDictionaryValue("Confirm Password")</label>
+            @if (Model.ShowPasswordToggle)
+            {
+                <button type="button" class="password-input__show"><i class="ph ph-eye" aria-hidden="true"></i> @UmbracoHelper?.GetDictionaryValue("Show Password")</button>
+                <button type="button" class="password-input__hide" style="display: none;"><i class="ph ph-eye-slash" aria-hidden="true"></i> @UmbracoHelper?.GetDictionaryValue("Hide Password")</button>
+            }
+            <input asp-for="ConfirmPassword" autocomplete="new-password" required/>
+            <span asp-validation-for="ConfirmPassword" class="error-color"></span>
+        </div>
+
+        @* Optional custom member properties — extend the form by populating Model.MemberProperties in the block view. *@
+        @if (Model.MemberProperties != null)
+        {
+            for (var i = 0; i < Model.MemberProperties.Count; i++)
+            {
+                <div class="mb-4">
+                    <label asp-for="MemberProperties[i].Value">@Model.MemberProperties[i].Name</label>
+                    <input asp-for="MemberProperties[i].Value"/>
+                    <input asp-for="MemberProperties[i].Alias" type="hidden"/>
+                    <input asp-for="MemberProperties[i].Name" type="hidden"/>
+                    <span asp-validation-for="MemberProperties[i].Value" class="error-color"></span>
+                </div>
+            }
+        }
+
+        <button class="@Model.ButtonClass" type="submit" data-umb="submit-register-form">@UmbracoHelper?.GetDictionaryValue("Register")</button>
+    }
+}

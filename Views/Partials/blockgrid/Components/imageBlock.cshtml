@@ -27,10 +27,12 @@
     {
         return;
     }
+
+    var width = BlockHelper.GetColumnWidth(settings?.ImageWidth);
 }
 
 <igloo-block-wrap settings="settings" content="content">
-    <figure>
+    <figure class="@width">
 
         @if (content.Link is not null)
         {

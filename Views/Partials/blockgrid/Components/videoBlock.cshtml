@@ -10,13 +10,15 @@
     var hideControls = settings.HideControls ? "" : "controls";
     var loop = settings.Loop ? "loop" : "";
     var videoShadow = settings.VideoShadow ? "video-shadow" : "";
+
+    var width = BlockHelper.GetColumnWidth(settings.VideoWidth);
 }
 
 <igloo-block-wrap settings="settings" content="content">
-    <figure>
+    <figure class="@width">
         @if (string.IsNullOrWhiteSpace(content.VideoEmbedCode) && content.Video is not null)
         {
-            <video class="video @videoShadow"
+            <video class="video w-full @videoShadow"
                    @(mute)
                    @(autoplay)
                    @(hideControls)

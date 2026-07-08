@@ -1,0 +1,53 @@
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.LoginBlock, ContentModels.LoginBlockSettings>>
+@using Igloo.Models.Forms
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+
+    var buttonClass = "button button-block button--default";
+    var buttonPalette = content.SubmitButtonPalette?.Key.ToString();
+    if (string.IsNullOrWhiteSpace(buttonPalette) == false)
+    {
+        buttonClass += $" variant-btn-{buttonPalette}";
+    }
+
+    var redirectUrl = settings?.RedirectUrl?.Url;
+
+    var loginModel = new MemberLoginViewModel
+    {
+        RedirectUrl = string.IsNullOrWhiteSpace(redirectUrl) ? "/" : redirectUrl,
+        ShowRememberMe = !(settings?.HideRememberMe ?? false),
+        ShowPasswordToggle = !(settings?.HidePasswordToggle ?? false),
+        ButtonClass = buttonClass,
+    };
+
+    var hasImage = content.Background?.Content != null;
+    var backgroundContent = new BackgroundContent { Content = content.Background?.Content, Height = "100" };
+}
+
+<igloo-block-wrap settings="settings" content="content" tag-name="section" class="account-form">
+    <div class="account-form__inner">
+        <div class="account-form__content">
+            @if (string.IsNullOrWhiteSpace(content.Heading?.Text) == false)
+            {
+                <igloo-heading heading="@content.Heading" class="mb-0"/>
+            }
+
+            @if (string.IsNullOrWhiteSpace(content.Text.ToString()) == false)
+            {
+                <div class="mt-4">
+                    @Html.Raw(content.Text)
+                </div>
+            }
+
+            <partial name="_LoginFormPartial" model="loginModel"/>
+        </div>
+    </div>
+
+    @if (hasImage)
+    {
+        <div class="account-form__media">
+            <partial name="_BackgroundContent" model="@backgroundContent"/>
+        </div>
+    }
+</igloo-block-wrap>

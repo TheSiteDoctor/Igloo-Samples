@@ -1,0 +1,47 @@
+@using Igloo.Controllers
+@using Igloo.Models.Forms
+@model MemberLoginViewModel
+
+@inject IUmbracoHelperAccessor _umbracoHelperAccessor
+@{
+    _umbracoHelperAccessor.TryGetUmbracoHelper(out var UmbracoHelper);
+}
+
+@using (Html.BeginUmbracoForm<IglooMemberController>(nameof(IglooMemberController.Login), FormMethod.Post, new { @class = "login-form mt-4" }))
+{
+    <input asp-for="RedirectUrl" type="hidden"/>
+    <input asp-for="ShowRememberMe" type="hidden"/>
+    <input asp-for="ShowPasswordToggle" type="hidden"/>
+
+    <div asp-validation-summary="ModelOnly" class="error-color"></div>
+
+    <div class="mb-4">
+        <label asp-for="Username">@UmbracoHelper?.GetDictionaryValue("Username")</label>
+        <input asp-for="Username" autocomplete="username" autofocus required/>
+        <span asp-validation-for="Username" class="error-color"></span>
+    </div>
+
+    <div class="password-input mb-4">
+        <label asp-for="Password">@UmbracoHelper?.GetDictionaryValue("Password")</label>
+        @if (Model.ShowPasswordToggle)
+        {
+            <button type="button" class="password-input__show"><i class="ph ph-eye" aria-hidden="true"></i> @UmbracoHelper?.GetDictionaryValue("Show Password")</button>
+            <button type="button" class="password-input__hide" style="display: none;"><i class="ph ph-eye-slash" aria-hidden="true"></i> @UmbracoHelper?.GetDictionaryValue("Hide Password")</button>
+        }
+        <input asp-for="Password" autocomplete="current-password" required/>
+        <span asp-validation-for="Password" class="error-color"></span>
+    </div>
+
+    @if (Model.ShowRememberMe)
+    {
+        <p class="mb-4">
+            <label class="cb-wrap">
+                <input asp-for="RememberMe"/>
+                @UmbracoHelper?.GetDictionaryValue("Remember Me")
+                <span class="checkmark"></span>
+            </label>
+        </p>
+    }
+
+    <button class="@Model.ButtonClass" type="submit" data-umb="submit-login-form">@UmbracoHelper?.GetDictionaryValue("Login")</button>
+}
