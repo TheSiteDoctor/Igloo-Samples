@@ -33,7 +33,14 @@
             @foreach (var itemBlock in content.Items)
             {
                 var item = itemBlock.Content as NavigationListItem;
-                var node = Umbraco.Content(item.Link.Udi);
+
+                if (item?.Link is null)
+                {
+                    continue;
+                }
+
+                // External links have no Udi; only resolve a content node when one is referenced.
+                var node = item.Link.Udi is not null ? Umbraco.Content(item.Link.Udi) : null;
                 await ListChildNodes(item, node, levelsRendered, levelsOfChildren);
             }
         </ul>
@@ -42,17 +49,27 @@
 
 
 @functions {
-    async Task ListChildNodes(NavigationListItem item, IPublishedContent root, int levelsRendered, decimal levelsOfChildren)
+    async Task ListChildNodes(NavigationListItem? item, IPublishedContent? root, int levelsRendered, decimal levelsOfChildren)
     {
         var content = Model.Content;
         var settings = Model.Settings;
-        var label = item?.Label ?? item?.Link?.Name ?? root.Name;
+        var label = item?.Label ?? item?.Link?.Name ?? root?.Name;
 
-        if (item is not null && item.Link?.Udi is not null && item.Link?.Type is not LinkType.Content)
+        // Render as a leaf link whenever the item points somewhere other than a resolvable
+        // content node: external URLs (no Udi), media, or content that no longer exists.
+        if (item?.Link is not null && (item.Link.Type is not LinkType.Content || root is null))
         {
             <li>
-                <igloo-navigation-link model="@item.Link" label="@item.Label"/>
+                <div class="flex justify-between align-middle">
+                    <igloo-navigation-link model="@item.Link" label="@label"/>
+                </div>
             </li>
+            return;
+        }
+
+        // Nothing to walk without a content node.
+        if (root is null)
+        {
             return;
         }
 
@@ -129,5 +146,4 @@
             </li>
         }
     }
-
 }

@@ -4,10 +4,11 @@
     var settings = Model.Settings;
     var content = Model.Content;
     var tabsArea = Model.Areas.FirstOrDefault(a => a.Alias == "area");
+    var tabStyle = string.IsNullOrWhiteSpace(settings.TabStyle) ? "default" : settings.TabStyle;
 }
 
 <igloo-block-wrap settings="settings" content="content">
-    <ul class="tabs @Model.Settings.TabStyle-tabs flex flex-wrap text-sm font-medium text-center text-body">
+    <ul class="tabs @(tabStyle)-tabs flex flex-wrap text-sm font-medium text-center text-body">
         @for (int i = 0; i < tabsArea.Count; i++)
         {
             var tabContent = tabsArea[i].Content as TabItem;
@@ -27,7 +28,7 @@
     {
         var tab = tabsArea[i];
         var initialHiddenClass = i == 0 ? "" : "hidden";
-        <div class="tab-panel @Model.Settings.TabStyle-tabs-panel @initialHiddenClass" data-pannel="@i">
+        <div class="tab-panel @(tabStyle)-tabs-panel @initialHiddenClass" data-pannel="@i">
             @await Html.GetBlockGridItemAreaHtmlAsync(tab, "area")
         </div>
     }

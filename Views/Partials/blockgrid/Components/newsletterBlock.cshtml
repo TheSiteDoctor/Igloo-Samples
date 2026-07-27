@@ -30,7 +30,7 @@
         newsletterSubscriberListId = content.SubscriberListId;
     }
 
-    var buttonClass = "button button-block button--default";
+    var buttonClass = "button button--default";
     var buttonPalette = content.SubmitButtonPalette?.Key.ToString();
     if (string.IsNullOrWhiteSpace(buttonPalette) == false)
     {
@@ -61,7 +61,24 @@
                         <span class="error-color field-validation-valid" data-valmsg-for="newsletter-email" data-valmsg-replace="true"></span>
                     </div>
                     <button class="@buttonClass" type="submit" aria-label="Sign up for newsletter">
-                        <i class="ph ph-paper-plane-tilt state-idle" aria-hidden="true"></i>
+                        <span class="state-idle">
+                            @if (content.SubmitButtonText.IsNullOrWhiteSpace() && content.SubmitButtonIcon == null)
+                            {
+                                <i class="ph ph-paper-plane-tilt " aria-hidden="true"></i>
+                            }
+                            else
+                            {
+                                if (!content.SubmitButtonText.IsNullOrWhiteSpace())
+                                {
+                                    @content.SubmitButtonText
+                                }
+                                if (content.SubmitButtonIcon != null)
+                                {
+                                    @content.SubmitButtonIcon.RenderIcon()
+                                }
+                            }
+                        </span>
+
                         <i class="ph ph-circle-notch state-loading animate-spin" aria-hidden="true" style="display:none"></i>
                     </button>
                 </div>
