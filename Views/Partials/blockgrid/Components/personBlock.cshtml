@@ -1,10 +1,19 @@
 @inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.PersonBlock, ContentModels.PersonBlockSettings>>
+@inject IDesignsService _designsService;
 
 @{
     var settings = Model.Settings;
     var content = Model.Content;
+
+    var pageDesign = _designsService.GetDesignFromPage(Umbraco.AssignedContentItem.Key, null);
+
+    var containerWidth = (string?)ViewData["containerWidth"];
+
+    var slotWidth = BlockHelper.GetSlotWidth(pageDesign, containerWidth, Model.ColumnSpan, Model.GridColumns);
 }
 
 <igloo-block-wrap settings="settings" content="content">
-    <partial name="_Person" model="(Person: content.Person as Person, Settings: settings as ICompPersonDisplaySettings)" />
+    <partial name="_Person"
+             model="(Person: content.Person as Person, Settings: settings as ICompPersonDisplaySettings)"
+             view-data="@(new ViewDataDictionary(ViewData) { ["slotWidth"] = slotWidth })" />
 </igloo-block-wrap>

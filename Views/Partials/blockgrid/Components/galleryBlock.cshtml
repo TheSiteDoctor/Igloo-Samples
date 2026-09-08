@@ -1,9 +1,16 @@
 @using Umbraco.Cms.Core.Models
 @inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.GalleryBlock, ContentModels.GalleryBlockSettings>>
+@inject IDesignsService _designsService;
 
 @{
     var settings = Model.Settings;
     var content = Model.Content;
+
+    var pageDesign = _designsService.GetDesignFromPage(Umbraco.AssignedContentItem.Key, null);
+
+    var containerWidth = (string?)ViewData["containerWidth"];
+
+    var blockWidth = BlockHelper.GetSlotWidth(pageDesign, containerWidth, Model.ColumnSpan, Model.GridColumns);
 
     var removeGutter = settings.RemoveGutter ? "gallery__group--no-gap" : "";
 
@@ -12,6 +19,8 @@
     var groupDec = Convert.ToDecimal(group);
     var imageCount = Convert.ToDecimal(images.Count());
     decimal loopCount = content.SimpleGrid ? 1 : imageCount / groupDec;
+
+    var slotWidth = (int)Math.Ceiling(blockWidth / BlockHelper.GetGallerySlotDivisor(group, content.SimpleGrid));
 
     var loadingState = "";
     if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
@@ -50,7 +59,7 @@
                 }
                 else
                 {
-                    RenderMedia(mediaItem);
+                    await RenderMedia(mediaItem);
                 }
 
                 if (settings.DisableGalleryZoom == false)
@@ -67,34 +76,19 @@
 </igloo-block-wrap>
 
 @{
-    void RenderMedia(MediaWithCrops? mediaItem)
+    async Task RenderMedia(MediaWithCrops? mediaItem)
     {
         if (mediaItem == null)
         {
             return;
         }
 
-        var breakpoints = new[]
-        {
-            new { Width = 1000 },
-            new { Width = 750 },
-            new { Width = 500 },
-            new { Width = 300 }
-        };
-
         <picture class="gallery__image" itemprop="associatedMedia" itemscope itemtype="http://schema.org/ImageObject">
-            @foreach (var bp in breakpoints)
-            {
-                <text><source
-                          srcset="@mediaItem?.GetCropUrl(bp.Width, quality: 80) @(bp.Width)w"
-                          media="(max-width: @bp.Width px)"></text>
-            }
-
-            <img src="@mediaItem?.GetCropUrl(1000, quality: 80)"
-                 alt="@mediaItem?.Name"
-                 itemprop="contentUrl"
-                 loading="lazy"
-                 class="w-full h-full object-cover object-center @loadingState"/>
+            <igloo-image media="mediaItem"
+                         alt="@mediaItem?.Name"
+                         slot-width="slotWidth"
+                         itemprop="contentUrl"
+                         class="w-full h-full object-cover object-center @loadingState"/>
         </picture>
     }
 }

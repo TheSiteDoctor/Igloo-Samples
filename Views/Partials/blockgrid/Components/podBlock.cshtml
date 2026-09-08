@@ -7,6 +7,12 @@
 
     var pageDesign = _designsService.GetDesignFromPage(Umbraco.AssignedContentItem.Key, null);
 
+    var containerWidth = (string?)ViewData["containerWidth"];
+
+    // How wide this pod actually renders, so the browser can pick a candidate sized for the pod
+    // rather than for the viewport.
+    var slotWidth = BlockHelper.GetSlotWidth(pageDesign, containerWidth, Model.ColumnSpan, Model.GridColumns);
+
     var boxed = settings?.Boxed ?? false ? "boxed" : string.Empty;
 
     var hasIcon = content.Icon != null;
@@ -67,7 +73,7 @@
 
         @if (hasMedia && imagePosition != ImagePosition.Background)
         {
-            RenderMedia();
+            await RenderMedia();
         }
         @if (hasIcon)
         {
@@ -89,7 +95,7 @@
 
     @if (hasMedia && imagePosition == ImagePosition.Background)
     {
-        RenderBackgroundMedia();
+        await RenderBackgroundMedia();
     }
 
     @if(!string.IsNullOrWhiteSpace(overlayStrength))
@@ -104,35 +110,27 @@
 </igloo-block-wrap>
 
 @{
-    void RenderMedia()
+    async Task RenderMedia()
     {
-        var breakpoints = new[]
-        {
-            new { Width = 1000 },
-            new { Width = 750 },
-            new { Width = 500 },
-            new { Width = 300 }
-        };
+        // Left and Right sit the image beside the content, giving it roughly half the pod.
+        var imageSlotWidth = isColumn ? slotWidth : (int)Math.Ceiling(slotWidth / 2.0);
 
-        <picture class="@(imagePositionClass) h-full @(content.Link != null ? "group-hover:scale-105 transition-transform duration-1000" : string.Empty)">
-            @foreach (var bp in breakpoints)
-            {
-                <text><source
-                          srcset="@content.Media?.GetCropUrl(bp.Width, quality: 80) @(bp.Width)w"
-                          media="(max-width: @bp.Width px)"></text>
-            }
+        // Top/Bottom stack the image above or below the content, so it spans the pod and takes its height
+        // from the ratio. Left/Right sit it beside the content, where it stretches down the pod instead.
+        // Only ever one of the two: the picture is a flex item, so filling both axes squashes the content,
+        // and a definite height would beat --pod-image-ratio.
+        var imageFillClass = isColumn ? "w-full" : "h-full";
 
-            <img src="@content.Media?.GetCropUrl(1000, quality: 80)"
-                 alt="@content.Heading?.Text"
-                 loading="lazy"
-                 class="w-full h-full object-cover object-center @loadingState"/>
+        <picture class="pod__image @(imagePositionClass) @(imageFillClass) @(content.Link != null ? "group-hover:scale-105 transition-transform duration-1000" : string.Empty)">
+            <igloo-image media="content.Media"
+                         alt="@content.Heading?.Text"
+                         slot-width="imageSlotWidth"
+                         class="w-full h-full object-cover object-center @loadingState"/>
         </picture>
     }
 
-    void RenderBackgroundMedia()
+    async Task RenderBackgroundMedia()
     {
-        var containerWidth = (string?)ViewData["containerWidth"];
-
         var blockHeight = 0.5;
 
         if (!string.IsNullOrWhiteSpace(height))
@@ -140,22 +138,14 @@
             blockHeight = Convert.ToDouble(height) / 100;
         }
 
-        var blockWidth = (double)Model.ColumnSpan / (Model.GridColumns ?? 12);
-
-        double targetWidth = BlockHelper.GetTargetWidth(pageDesign, containerWidth);
-        double targetHeight = 1080;
-
-        targetWidth *= blockWidth;
-        targetHeight *= blockHeight;
+        var backgroundAspectRatio = slotWidth / (1080 * blockHeight);
 
         <picture class="absolute inset-0 w-full h-full group-hover:scale-105 transition-transform duration-1000">
-            <source
-                srcset="@content.Media?.GetCropUrl(Convert.ToInt32(targetWidth), Convert.ToInt32(targetHeight), quality: 80)">
-
-            <img src="@content.Media?.GetCropUrl(Convert.ToInt32(targetWidth), Convert.ToInt32(targetHeight), quality: 80)"
-                 alt="@content.Heading"
-                 loading="lazy"
-                 class="absolute inset-0 w-full h-full object-cover object-center @loadingState"/>
+            <igloo-image media="content.Media"
+                         alt="@content.Heading?.Text"
+                         slot-width="slotWidth"
+                         aspect-ratio="backgroundAspectRatio"
+                         class="absolute inset-0 w-full h-full object-cover object-center @loadingState"/>
         </picture>
     }
 }

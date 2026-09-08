@@ -34,14 +34,9 @@
                 }
                 else
                 {
-                    var breakpoints = new[]
-                    {
-                        new { Width = 2560, Height = Convert.ToInt32(1440 * blockHeight) },
-                        new { Width = 1920, Height = Convert.ToInt32(1080 * blockHeight) },
-                        new { Width = 1600, Height = Convert.ToInt32(900 * blockHeight) },
-                        new { Width = 1080, Height = Convert.ToInt32(1920 * blockHeight) },
-                        new { Width = 750,  Height = Convert.ToInt32(1334 * blockHeight) }
-                    };
+                    // A 16:9 frame scaled by the block's height setting. The background is full bleed,
+                    // so sizes stays at the default 100vw.
+                    var backgroundAspectRatio = 1920 / (1080 * blockHeight);
 
                     var loadingState = "";
                     if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
@@ -50,17 +45,10 @@
                     }
 
                     <picture class="absolute inset-0 w-full h-full">
-                        @foreach (var bp in breakpoints)
-                        {
-                            <text><source
-                                      srcset="@media.GetCropUrl(bp.Width, bp.Height, quality: 80) @(bp.Width)w"
-                                      media="(max-width: @bp.Width px)"></text>
-                        }
-
-                        <img src="@media.GetCropUrl(1920, Convert.ToInt32(1080 * blockHeight), quality: 80)"
-                             alt="Hero background"
-                             loading="lazy"
-                             class="absolute inset-0 w-full h-full object-cover object-center @loadingState"/>
+                        <igloo-image media="media"
+                                     alt="Hero background"
+                                     aspect-ratio="backgroundAspectRatio"
+                                     class="absolute inset-0 w-full h-full object-cover object-center @loadingState"/>
                     </picture>
                 }
             }

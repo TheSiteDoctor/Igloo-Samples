@@ -19,6 +19,9 @@
 
     var imageCircleWrapperClass = settings.CircleImage ? "circle-image" : string.Empty;
 
+    // Supplied by the calling block, which is the only thing that knows how wide a card renders.
+    var slotWidth = ViewData["slotWidth"] as int?;
+
     var loadingState = "";
     if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
     {
@@ -28,7 +31,7 @@
 <div class="personBlock @textAlignment @boxed @imageCircleWrapperClass">
     @if (person.Image != null)
     {
-        RenderMedia();
+        await RenderMedia();
     }
 
     <div class="content flex flex-col w-full">
@@ -106,28 +109,14 @@
 </div>
 
 @{
-    void RenderMedia()
+    async Task RenderMedia()
     {
-        var breakpoints = new[]
-        {
-            new { Width = 1000 },
-            new { Width = 750 },
-            new { Width = 500 },
-            new { Width = 300 }
-        };
-
         <picture class="image mb-4">
-            @foreach (var bp in breakpoints)
-            {
-                <text><source
-                          srcset="@Model.Person.Image?.GetCropUrl(bp.Width, bp.Width, quality: 80) @(bp.Width)w"
-                          media="(max-width: @bp.Width px)"></text>
-            }
-
-            <img src="@Model.Person.Image?.GetCropUrl(1000, 1000, quality: 80)"
-                 alt="@Model.Person.FullName"
-                 loading="lazy"
-                 class="@imageCircleClass w-full object-cover object-center @loadingState"/>
+            <igloo-image media="Model.Person.Image"
+                         alt="@Model.Person.FullName"
+                         slot-width="slotWidth"
+                         aspect-ratio="1"
+                         class="@imageCircleClass w-full object-cover object-center @loadingState"/>
         </picture>
     }
 }

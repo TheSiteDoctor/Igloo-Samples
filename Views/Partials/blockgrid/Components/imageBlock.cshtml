@@ -1,19 +1,22 @@
 @inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ImageBlock, ContentModels.ImageBlockSettings>>
+@inject IDesignsService _designsService;
 
 @{
     var settings = Model.Settings;
     var content = Model.Content;
 
-    var breakpoints = new[]
-    {
-        new { Width = 2560 },
-        new { Width = 1920 },
-        new { Width = 1600 },
-        new { Width = 1080 },
-        new { Width = 750 },
-        new { Width = 500 },
-        new { Width = 300 }
-    };
+    var pageDesign = _designsService.GetDesignFromPage(Umbraco.AssignedContentItem.Key, null);
+
+    var containerWidth = (string?)ViewData["containerWidth"];
+
+    var blockWidth = BlockHelper.GetSlotWidth(pageDesign, containerWidth, Model.ColumnSpan, Model.GridColumns);
+
+    // The figure is capped to a percentage of the block from the md breakpoint up.
+    var widthPercentage = int.TryParse(BlockHelper.RemovePercentageSymbol(settings?.ImageWidth), out var parsedPercentage)
+        ? parsedPercentage
+        : 100;
+
+    var slotWidth = (int)Math.Ceiling(blockWidth * (widthPercentage / 100.0));
 
     var loadingState = "";
     if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
@@ -40,18 +43,10 @@
         }
 
         <picture class="block w-full h-full">
-            @foreach (var bp in breakpoints)
-            {
-                <text>
-                    <source
-                        srcset="@media.GetCropUrl(bp.Width, quality: 80) @(bp.Width)w"
-                        media="(max-width: @bp.Width px)"></text>
-            }
-
-            <img src="@media.GetCropUrl(1920, quality: 80)"
-                 alt="@content.Caption"
-                 loading="lazy"
-                 class="block w-full h-full @loadingState"/>
+            <igloo-image media="media"
+                         alt="@content.Caption"
+                         slot-width="slotWidth"
+                         class="block w-full h-full @loadingState"/>
         </picture>
 
         @if (content.Link is not null)

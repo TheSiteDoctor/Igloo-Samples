@@ -1,17 +1,28 @@
 ﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.PeopleBlock, ContentModels.PeopleBlockSettings>>
+@inject IDesignsService _designsService;
 
 @{
     var settings = Model.Settings;
     var content = Model.Content;
 
     var peoplePerRow = int.Parse(settings?.PeoplePerRow ?? "3");
+
+    var pageDesign = _designsService.GetDesignFromPage(Umbraco.AssignedContentItem.Key, null);
+
+    var containerWidth = (string?)ViewData["containerWidth"];
+
+    var blockWidth = BlockHelper.GetSlotWidth(pageDesign, containerWidth, Model.ColumnSpan, Model.GridColumns);
+
+    var slotWidth = (int)Math.Ceiling(blockWidth / (double)Math.Max(peoplePerRow, 1));
 }
 
 <igloo-block-wrap settings="settings" content="content">
     <div class="people-grid" style="--grid-column-count: @(peoplePerRow)">
         @foreach (var person in content.People ?? [])
         {
-            <partial name="_Person" model="(Person: person as Person, Settings: settings as ICompPersonDisplaySettings)" />
+            <partial name="_Person"
+                     model="(Person: person as Person, Settings: settings as ICompPersonDisplaySettings)"
+                     view-data="@(new ViewDataDictionary(ViewData) { ["slotWidth"] = slotWidth })" />
         }
     </div>
 </igloo-block-wrap>
