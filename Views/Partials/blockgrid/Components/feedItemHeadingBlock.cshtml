@@ -1,0 +1,25 @@
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemHeadingBlock, ContentModels.FeedItemHeadingBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@{
+    var settings = Model.Settings;
+    var item = _feedItemContext.GetCurrent()?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Heading")" />
+        return;
+    }
+
+    // One h1 per page by default; editors can drop to h2/h3 when the layout has its own h1.
+    var size = settings?.HeadingLevel?.Size is { } level and >= HeadingSize.H1 and <= HeadingSize.H3 ? level : HeadingSize.H1;
+    var heading = new HtmlHeading { Text = string.IsNullOrWhiteSpace(item.Heading) ? item.Name : item.Heading, Size = size };
+    var alignment = BlockHelper.GetTextAlignment(settings?.TextAlignment);
+}
+
+<igloo-block-wrap settings="settings" content="Model.Content" class="@alignment">
+    @if ((settings?.ShowPreHeading ?? true) && !string.IsNullOrWhiteSpace(item.PreHeading))
+    {
+        <div class="pre-head">@item.PreHeading</div>
+    }
+    <igloo-heading heading="@heading" />
+</igloo-block-wrap>

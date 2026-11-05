@@ -1,0 +1,84 @@
+@using Igloo.Services.Feed
+@using Our.Iconic.Core.Models
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemShareBlock, ContentModels.FeedItemShareBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@inject IFeedUrlResolver _feedUrlResolver
+@{
+    var settings = Model.Settings;
+    var item = _feedItemContext.GetCurrent()?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Share")" />
+        return;
+    }
+
+    var url = _feedUrlResolver.GetCanonicalUrl(item);
+    var title = string.IsNullOrWhiteSpace(item.Heading) ? item.Name : item.Heading;
+    var links = FeedShareLinks.For(settings?.Networks, url, title);
+    if (links.Count == 0)
+    {
+        return;
+    }
+
+    var showLabels = settings?.Style == "labels";
+    var buttonClass = $"{FeedButtonClass.For(settings?.ButtonStyle?.Key)} feed-item__share-link";
+    var alignment = BlockHelper.GetTextRowAlignment(settings?.Alignment);
+
+    // With only the browser's share sheet chosen, the whole widget stays hidden until the script
+    // finds one, so browsers without it never show a heading above an empty list.
+    var nativeOnly = links.All(x => x.Kind == FeedShareKind.NativeShare);
+
+    // Razor always renders data-* attributes, even null ones, so each link names its one action.
+    string ActionFor(FeedShareLink link) => link.Kind switch
+    {
+        FeedShareKind.CopyLink => "copy",
+        FeedShareKind.NativeShare => "native",
+        _ => link.Popup ? "popup" : "link",
+    };
+
+    string LabelFor(FeedShareLink link) => link.Kind switch
+    {
+        FeedShareKind.CopyLink => Umbraco.GetDictionaryValueOrDefault("Feed.CopyLink", "Copy link"),
+        FeedShareKind.NativeShare => Umbraco.GetDictionaryValueOrDefault("Feed.Share", "Share"),
+        _ => link.Network,
+    };
+}
+
+<igloo-block-wrap settings="settings" content="Model.Content" class="feed-item__share @(nativeOnly ? "feed-item__share--native-only" : null)">
+    <igloo-heading heading="@Model.Content.Heading" />
+    <div data-feed-share data-url="@url" data-title="@title" data-copied-text="@Umbraco.GetDictionaryValueOrDefault("Feed.LinkCopied", "Link copied")">
+        <ul class="feed-item__share-list flex flex-wrap gap-2 @alignment" aria-label="@Umbraco.GetDictionaryValueOrDefault("Feed.Share", "Share")">
+            @foreach (var link in links)
+            {
+                var label = LabelFor(link);
+                var icon = settings?.Value<Icon>(link.IconAlias)?.RenderIcon(null, "icon flex")
+                    ?? Html.Raw($"<i class=\"ph {link.DefaultIcon}\"></i>");
+                var labelClass = showLabels ? "feed-item__share-label" : "sr-only";
+
+                <li class="feed-item__share-item" hidden="@(link.Kind == FeedShareKind.NativeShare)">
+                    @if (link.Kind == FeedShareKind.Link)
+                    {
+                        <a class="@buttonClass" href="@link.Href" data-network="@link.Network"
+                           target="@(link.Popup ? "_blank" : null)" rel="@(link.Popup ? "noopener noreferrer" : null)"
+                           data-feed-share-action="@ActionFor(link)">
+                            <span aria-hidden="true">@icon</span><span class="@labelClass">@label</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <button type="button" class="@buttonClass" data-network="@link.Network"
+                                data-feed-share-action="@ActionFor(link)">
+                            <span class="feed-item__share-icon" aria-hidden="true">@icon</span>
+                            @if (link.Kind == FeedShareKind.CopyLink)
+                            {
+                                <i class="ph ph-check feed-item__share-copied" aria-hidden="true"></i>
+                            }
+                            <span class="@labelClass">@label</span>
+                        </button>
+                    }
+                </li>
+            }
+        </ul>
+        <p class="feed-item__share-status" role="status" aria-live="polite" data-feed-share-status></p>
+    </div>
+</igloo-block-wrap>

@@ -1,0 +1,22 @@
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemBackLinkBlock, ContentModels.FeedItemBackLinkBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@{
+    var settings = Model.Settings;
+    var feed = _feedItemContext.GetCurrent()?.Feed;
+    if (feed is null)
+    {
+        return;
+    }
+
+    var text = string.IsNullOrWhiteSpace(Model.Content.Text)
+        ? $"{Umbraco.GetDictionaryValueOrDefault("Feed.BackTo", "Back to")} {feed.Name}"
+        : Model.Content.Text;
+    var linkClass = settings?.ButtonStyle?.Key is { } buttonStyle
+        ? $"button button--default variant-btn-{buttonStyle}"
+        : "feed-item__back-link-text";
+}
+
+<igloo-block-wrap settings="settings" content="Model.Content" class="feed-item__back-link">
+    <a class="@linkClass" href="@feed.Url()"><i class="ph ph-arrow-left" aria-hidden="true"></i> @text</a>
+</igloo-block-wrap>

@@ -45,7 +45,8 @@
                 x.IsVisible()
                 && x.ContentType.CompositionAliases.Contains("compSeo")
                 && x.TemplateId != 0
-                && !x.Value<bool>("hideFromSearchEngines"))
+                && !x.Value<bool>("hideFromSearchEngines")
+                && !x.HasLinkOverride())
             .ToList();
 
         <li>

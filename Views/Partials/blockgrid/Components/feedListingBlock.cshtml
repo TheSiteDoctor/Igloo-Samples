@@ -1,0 +1,238 @@
+@using System.Globalization
+@using Igloo.Models.Feed
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedListingBlock, ContentModels.FeedListingBlockSettings>>
+@inject IFeedListingBuilder _listingBuilder
+@inject IFeedUrlResolver _feedUrlResolver
+@inject IDesignsService _designsService
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+    var page = Umbraco.AssignedContentItem;
+
+    var listingsOnPage = BlockHelper.CountBlocks(page, FeedListingBlock.ModelTypeAlias);
+    var listing = _listingBuilder.Build(content, settings, content.Key, page, Context.Request, listingsOnPage);
+
+    if (listing is null)
+    {
+        if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+        {
+            <igloo-block-wrap settings="settings" content="content">
+                <p class="feed-listing__hint">Pick a feed, or place this block on a feed page.</p>
+            </igloo-block-wrap>
+        }
+        return;
+    }
+
+    // The first listing on a page decides its canonical and rel=prev/next links (see _Meta).
+    Context.Items.TryAdd(FeedListingModel.ItemsKey, listing);
+
+    var columns = content.MaximumNumberOfColumns > 0 ? content.MaximumNumberOfColumns : 3;
+    var pageDesign = _designsService.GetDesignFromPage(page.Key, null);
+    var blockWidth = BlockHelper.GetSlotWidth(pageDesign, (string?)ViewData["containerWidth"], Model.ColumnSpan, Model.GridColumns);
+    var isList = string.Equals(listing.State.Layout, FeedListingValues.Layout.List, StringComparison.OrdinalIgnoreCase);
+    var slotWidth = isList ? blockWidth : (int)Math.Ceiling(blockWidth / (double)columns);
+
+    var categoryNames = listing.Categories.ToDictionary(x => x.Category.Key, x => x.Category.Name);
+    var buttonStyleKey = settings?.ButtonStyle?.Key;
+
+    var showCategoryFilter = settings?.ShowCategoryFilter == true && listing.Categories.Count > 0;
+    var showTagFilter = settings?.ShowTagFilter == true && listing.Facets.Tags.Count > 0;
+    var showSort = listing.Options.AllowSortChoice;
+    var hasForm = showSort
+                  || (showCategoryFilter && FeedListingValues.FilterStyle.IsFormField(settings?.CategoryFilterStyle))
+                  || (showTagFilter && FeedListingValues.FilterStyle.IsFormField(settings?.TagFilterStyle));
+
+    // The pager, Load more and the no-JS Apply button share the listing's Button Style.
+    var buttonClass = buttonStyleKey is { } buttonStyle ? $"button button--default variant-btn-{buttonStyle}" : "button button--default";
+
+    // Category and tag links and the Grid/List switch: their own style, else the listing's, else a pill.
+    var filterClass = FeedButtonClass.For(settings?.FilterButtonStyle?.Key, buttonStyleKey);
+
+    var resultsId = $"feed-listing-{content.Key:N}";
+    var allLabel = Umbraco.GetDictionaryValueOrDefault("Feed.All", "All");
+    var resultCount = listing.Result.TotalItems == 1
+        ? Umbraco.GetDictionaryValueOrDefault("Feed.ResultCountOne", "1 result")
+        : Umbraco.GetDictionaryValueOrDefault("Feed.ResultCount", "{0} results")
+            .Replace("{0}", listing.Result.TotalItems.ToString(CultureInfo.CurrentCulture));
+}
+
+<igloo-block-wrap settings="settings" content="content" class="feed-listing" data-feed-listing="@resultsId" data-feed-listing-prefix="@listing.Prefix">
+    @if (!string.IsNullOrWhiteSpace(content.PreHeading))
+    {
+        <div class="pre-head">@content.PreHeading</div>
+    }
+    <igloo-heading heading="@content.Heading" />
+    @if (!string.IsNullOrWhiteSpace(content.IntroText?.ToHtmlString()))
+    {
+        <div class="rich-text feed-listing__intro">@Html.Raw(content.IntroText)</div>
+    }
+
+    <div class="feed-listing__toolbar">
+        @if (hasForm || showCategoryFilter || showTagFilter)
+        {
+            <form class="feed-listing__filters" method="get" action="@listing.Path" data-feed-listing-form>
+                @* Keep everything this form doesn't own, e.g. another listing's page or tracking parameters. *@
+                @foreach (var parameter in listing.Query.Where(x => !IsOwnedByForm(x.Key)))
+                {
+                    foreach (var value in parameter.Value)
+                    {
+                        <input type="hidden" name="@parameter.Key" value="@value" />
+                    }
+                }
+
+                @if (showCategoryFilter)
+                {
+                    await RenderFilter(FeedListingQueryString.CategoryKey, Umbraco.GetDictionaryValueOrDefault("Feed.Categories", "Categories"),
+                        settings!.CategoryFilterStyle,
+                        listing.Categories.Select(x => (Value: x.Slug, Label: x.Category.Name, x.Count)).ToList(),
+                        listing.State.Categories);
+                }
+
+                @if (showTagFilter)
+                {
+                    await RenderFilter(FeedListingQueryString.TagKey, Umbraco.GetDictionaryValueOrDefault("Feed.Tags", "Tags"),
+                        settings!.TagFilterStyle,
+                        listing.Facets.Tags.Select(x => (Value: x.Tag, Label: x.Tag, x.Count)).ToList(),
+                        listing.State.Tags);
+                }
+
+                @if (showSort)
+                {
+                    <label class="feed-listing__sort">
+                        <span class="feed-listing__label">@Umbraco.GetDictionaryValueOrDefault("Feed.SortBy", "Sort by")</span>
+                        <select name="@(listing.Prefix + FeedListingQueryString.SortKey)">
+                            @foreach (var option in Enum.GetValues<FeedSortOption>())
+                            {
+                                <option value="@FeedSortOptions.ToValue(option)" selected="@(option == listing.State.Sort)">@SortLabel(option)</option>
+                            }
+                        </select>
+                    </label>
+                }
+
+                @if (hasForm)
+                {
+                    @* Only needed without JS: feedListing.ts applies filters as they change. *@
+                    <noscript>
+                        <button type="submit" class="@buttonClass feed-listing__apply">@Umbraco.GetDictionaryValueOrDefault("Feed.ApplyFilters", "Apply")</button>
+                    </noscript>
+                }
+            </form>
+        }
+
+        @if (listing.Options.LayoutModes.Count > 1)
+        {
+            <nav class="feed-listing__layouts" aria-label="@Umbraco.GetDictionaryValueOrDefault("Feed.Layout", "Layout")">
+                @foreach (var mode in listing.Options.LayoutModes)
+                {
+                    var active = string.Equals(mode, listing.State.Layout, StringComparison.OrdinalIgnoreCase);
+                    <a class="@filterClass" href="@listing.Url(FeedListingQueryString.LayoutKey, mode.ToLowerInvariant())" aria-current="@(active ? "true" : null)" data-feed-listing-link>@mode</a>
+                }
+            </nav>
+        }
+    </div>
+
+    @* Persistent, so screen readers announce the new count when feedListing.ts swaps the results. *@
+    <p class="feed-listing__status" role="status" data-feed-listing-status>@resultCount</p>
+
+    <div id="@resultsId" class="feed-listing__results" tabindex="-1">
+        @if (listing.Result.Items.Count == 0)
+        {
+            <div class="rich-text feed-listing__empty">
+                @if (!string.IsNullOrWhiteSpace(content.EmptyText?.ToHtmlString()))
+                {
+                    @Html.Raw(content.EmptyText)
+                }
+                else
+                {
+                    <p>@Umbraco.GetDictionaryValueOrDefault("Feed.NoResults", "Nothing to show yet.")</p>
+                }
+            </div>
+        }
+        else
+        {
+            <ul class="feed-listing__items @(isList ? "list-view" : "grid-view feed-card-grid")" style="--grid-column-count: @columns" data-feed-listing-items>
+                @foreach (var item in listing.Result.Items)
+                {
+                    var url = item.LinkOverride?.Url ?? _feedUrlResolver.GetItemUrl(item, listing.Feed);
+                    var categoryName = item.Category is { } category && categoryNames.TryGetValue(category.Key, out var name) ? name : item.Category?.Name;
+                    <li>
+                        <partial name="feed/_FeedCard" model="@(new FeedCardModel(item, listing.Feed, settings, url, categoryName, slotWidth))" />
+                    </li>
+                }
+            </ul>
+
+            <partial name="feed/_FeedPager" model="@((listing, buttonStyleKey))" />
+        }
+    </div>
+</igloo-block-wrap>
+
+@{
+    // Submitting the form starts again at page 1, and replaces the values of the fields it holds.
+    // A filter shown as links isn't a form field, so its current value rides along as a hidden input.
+    bool IsOwnedByForm(string key)
+        => FeedListingQueryString.IsKey(key, listing.Prefix + FeedListingQueryString.PageKey)
+           || (FeedListingQueryString.IsKey(key, listing.Prefix + FeedListingQueryString.CategoryKey) && showCategoryFilter && FeedListingValues.FilterStyle.IsFormField(settings?.CategoryFilterStyle))
+           || (FeedListingQueryString.IsKey(key, listing.Prefix + FeedListingQueryString.TagKey) && showTagFilter && FeedListingValues.FilterStyle.IsFormField(settings?.TagFilterStyle))
+           || (FeedListingQueryString.IsKey(key, listing.Prefix + FeedListingQueryString.SortKey) && showSort);
+
+    string SortLabel(FeedSortOption option) => option switch
+    {
+        FeedSortOption.Oldest => Umbraco.GetDictionaryValueOrDefault("Feed.SortOldest", "Oldest"),
+        FeedSortOption.Title => Umbraco.GetDictionaryValueOrDefault("Feed.SortTitle", "Title A to Z"),
+        FeedSortOption.Featured => Umbraco.GetDictionaryValueOrDefault("Feed.SortFeatured", "Featured"),
+        FeedSortOption.Manual => Umbraco.GetDictionaryValueOrDefault("Feed.SortManual", "Recommended"),
+        _ => Umbraco.GetDictionaryValueOrDefault("Feed.SortNewest", "Newest"),
+    };
+
+    async Task RenderFilter(string key, string label, string? style, IReadOnlyList<(string Value, string Label, int Count)> options, IReadOnlyList<string> selected)
+    {
+        var name = listing.Prefix + key;
+        bool IsSelected(string value) => selected.Contains(value, StringComparer.OrdinalIgnoreCase);
+
+        switch (style)
+        {
+            case FeedListingValues.FilterStyle.Dropdown:
+                <label class="feed-listing__filter feed-listing__filter--dropdown">
+                    <span class="feed-listing__label">@label</span>
+                    <select name="@name">
+                        <option value="">@allLabel</option>
+                        @foreach (var option in options)
+                        {
+                            <option value="@option.Value" selected="@IsSelected(option.Value)">@option.Label</option>
+                        }
+                    </select>
+                </label>
+                break;
+
+            case FeedListingValues.FilterStyle.Checkboxes:
+                <fieldset class="feed-listing__filter feed-listing__filter--checkboxes">
+                    <legend class="feed-listing__label">@label</legend>
+                    @foreach (var option in options)
+                    {
+                        <label>
+                            <input type="checkbox" name="@name" value="@option.Value" checked="@IsSelected(option.Value)" />
+                            <span>@option.Label</span>
+                        </label>
+                    }
+                </fieldset>
+                break;
+
+            default:
+                <nav class="feed-listing__filter feed-listing__filter--links" aria-label="@label">
+                    @* Same label row as the other filters, so the controls line up. *@
+                    <span class="feed-listing__label" aria-hidden="true">@label</span>
+                    <ul>
+                        <li><a class="@filterClass" href="@listing.Url(key, null)" aria-current="@(selected.Count == 0 ? "true" : null)" data-feed-listing-link>@allLabel</a></li>
+                        @foreach (var option in options)
+                        {
+                            <li><a class="@filterClass" href="@listing.Url(key, option.Value)" aria-current="@(IsSelected(option.Value) ? "true" : null)" data-feed-listing-link>@option.Label</a></li>
+                        }
+                    </ul>
+                </nav>
+                break;
+        }
+
+        await Task.CompletedTask;
+    }
+}

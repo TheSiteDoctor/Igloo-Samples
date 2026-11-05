@@ -1,0 +1,34 @@
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemContentBlock, ContentModels.FeedItemContentBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@{
+    const string renderingKey = "igloo.feedItemContentRendering";
+
+    var item = _feedItemContext.GetCurrent()?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Content")" />
+        return;
+    }
+
+    // The item's own grid can't offer this widget, but guard anyway: rendering it from inside
+    // itself would recurse until the request dies.
+    if (Context.Items.ContainsKey(renderingKey))
+    {
+        return;
+    }
+}
+
+<igloo-block-wrap settings="Model.Settings" content="Model.Content" class="feed-item__content">
+    @{
+        Context.Items[renderingKey] = true;
+        try
+        {
+            @await Html.GetBlockGridHtmlAsync(item.Content)
+        }
+        finally
+        {
+            Context.Items.Remove(renderingKey);
+        }
+    }
+</igloo-block-wrap>

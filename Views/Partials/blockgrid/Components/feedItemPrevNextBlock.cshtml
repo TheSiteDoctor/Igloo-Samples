@@ -1,0 +1,60 @@
+@using Igloo.Extensions
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemPrevNextBlock, ContentModels.FeedItemPrevNextBlockSettings>>
+@inject IFeedService _feedService
+@inject IFeedUrlResolver _feedUrlResolver
+@inject IFeedItemContextAccessor _feedItemContext
+@inject IVariationContextAccessor _variationContextAccessor
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+    var context = _feedItemContext.GetCurrent();
+    if (context?.Item is not { } current)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Previous and Next")" />
+        return;
+    }
+
+    // In the feed's own sort order; nothing past either end.
+    var (previous, next) = _feedService.GetPreviousNext(context.Feed, current, _variationContextAccessor.VariationContext?.Culture);
+    if (previous is null && next is null)
+    {
+        return;
+    }
+
+    var showTitles = settings?.ShowTitles ?? true;
+    var showImages = settings?.ShowImages ?? false;
+    var previousLabel = string.IsNullOrWhiteSpace(content.PreviousLabel) ? Umbraco.GetDictionaryValueOrDefault("Feed.Previous", "Previous") : content.PreviousLabel;
+    var nextLabel = string.IsNullOrWhiteSpace(content.NextLabel) ? Umbraco.GetDictionaryValueOrDefault("Feed.Next", "Next") : content.NextLabel;
+    var loadingState = Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request) ? "loaded" : string.Empty;
+}
+
+<igloo-block-wrap settings="settings" content="content" class="feed-item__prev-next">
+    <nav aria-label="@previousLabel / @nextLabel">
+        <ul class="feed-item__prev-next-list">
+            @foreach (var (item, label, direction) in new[] { (previous, previousLabel, "previous"), (next, nextLabel, "next") })
+            {
+                <li class="feed-item__@direction">
+                    @if (item is not null)
+                    {
+                        var title = string.IsNullOrWhiteSpace(item.Heading) ? item.Name : item.Heading;
+                        var image = showImages ? item.GetCardImage(context.Feed) : null;
+                        <a href="@(item.LinkOverride?.Url ?? _feedUrlResolver.GetItemUrl(item, context.Feed))">
+                            @if (image is not null)
+                            {
+                                <igloo-image media="image" alt="" slot-width="160" aspect-ratio="1" class="feed-item__prev-next-image @loadingState" />
+                            }
+                            <span class="feed-item__prev-next-text">
+                                <span class="feed-item__prev-next-label">@label</span>
+                                @if (showTitles)
+                                {
+                                    <span class="feed-item__prev-next-title">@title</span>
+                                }
+                            </span>
+                        </a>
+                    }
+                </li>
+            }
+        </ul>
+    </nav>
+</igloo-block-wrap>

@@ -1,0 +1,62 @@
+@using Igloo.Models.Feed
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemRelatedBlock, ContentModels.FeedItemRelatedBlockSettings>>
+@inject IFeedService _feedService
+@inject IFeedUrlResolver _feedUrlResolver
+@inject IFeedItemContextAccessor _feedItemContext
+@inject IVariationContextAccessor _variationContextAccessor
+@inject IDesignsService _designsService
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+    var context = _feedItemContext.GetCurrent();
+    if (context?.Item is not { } current)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Related Items")" />
+        return;
+    }
+
+    var feed = context.Feed;
+    // The item's own picks first, then similar or newest; never the item itself.
+    var strategy = settings?.Strategy == "newest" ? FeedRelatedStrategy.Newest : FeedRelatedStrategy.Similar;
+    var count = settings?.Count > 0 ? settings.Count : 3;
+    var items = _feedService.GetRelated(feed, current, count, _variationContextAccessor.VariationContext?.Culture, strategy);
+    if (items.Count == 0)
+    {
+        return;
+    }
+
+    var columns = Math.Clamp(items.Count, 1, 4);
+    var pageDesign = _designsService.GetDesignFromPage(Umbraco.AssignedContentItem.Key, null);
+    var blockWidth = BlockHelper.GetSlotWidth(pageDesign, (string?)ViewData["containerWidth"], Model.ColumnSpan, Model.GridColumns);
+    var slotWidth = (int)Math.Ceiling(blockWidth / (double)columns);
+}
+
+<igloo-block-wrap settings="settings" content="content" class="feed-item__related">
+    @if (!string.IsNullOrWhiteSpace(content.PreHeading))
+    {
+        <div class="pre-head">@content.PreHeading</div>
+    }
+    <igloo-heading heading="@content.Heading" />
+
+    <ul class="feed-item__related-items feed-card-grid" style="--grid-column-count: @columns">
+        @foreach (var item in items)
+        {
+            var url = item.LinkOverride?.Url ?? _feedUrlResolver.GetItemUrl(item, feed);
+            var categoryName = (item.Category as FeedCategory)?.Name;
+            <li>
+                <partial name="feed/_FeedCard" model="@(new FeedCardModel(item, feed, settings, url, categoryName, slotWidth))" />
+            </li>
+        }
+    </ul>
+
+    @if (settings?.ShowMoreLink ?? true)
+    {
+        <p class="feed-item__related-more"><a class="@(settings?.ShowMoreButtonStyle?.Key is { } style ? $"button button--default variant-btn-{style}" : null)" href="@feed.Url()">@Umbraco.GetDictionaryValueOrDefault("Feed.ShowMore", "Show more")</a></p>
+    }
+
+    @if (content.Buttons?.Any() == true)
+    {
+        <igloo-button-list model="@content.Buttons" class="mt-6"></igloo-button-list>
+    }
+</igloo-block-wrap>

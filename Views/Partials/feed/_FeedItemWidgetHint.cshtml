@@ -1,0 +1,9 @@
+@inherits UmbracoViewPage<string>
+@*
+    Shown in a backoffice block preview when a Feed Item widget has no item to show: the feed has no
+    published items yet. Renders nothing on the front end.
+*@
+@if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+{
+    <p class="feed-item-widget__hint">@Model: publish an item in this feed to preview it.</p>
+}

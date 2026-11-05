@@ -1,4 +1,4 @@
-@using Igloo.TagHelpers
+﻿@using Igloo.TagHelpers
 @using Umbraco.Cms.Core.Models
 @inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.NavigationListBlock, ContentModels.NavigationListBlockSettings>>
 
@@ -75,7 +75,7 @@
 
         if (levelsOfChildren >= levelsRendered)
         {
-            var children = root.Children()
+            var children = NavigationHelper.NavigationChildren(root)
                 .Where(x => x.IsVisible())
                 .Where(x => x?.ContentType?.Alias != "sitemap" && x?.ContentType?.Alias != "websiteSettings").ToList();
 

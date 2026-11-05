@@ -1,0 +1,44 @@
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemAuthorBlock, ContentModels.FeedItemAuthorBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@{
+    var settings = Model.Settings;
+    var item = _feedItemContext.GetCurrent()?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Author")" />
+        return;
+    }
+
+    if (item.Author is not Person author)
+    {
+        return;
+    }
+
+    var isBio = settings?.Variant == "bio";
+    var showImage = (settings?.ShowImage ?? true) && author.Image is not null;
+    var name = string.IsNullOrWhiteSpace(author.FullName) ? author.Name : author.FullName;
+    var imageSlotWidth = isBio ? 160 : 48;
+    var loadingState = Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request) ? "loaded" : string.Empty;
+}
+
+<igloo-block-wrap settings="settings" content="Model.Content" class="@(isBio ? "feed-item__author feed-item__author--bio" : "feed-item__author feed-item__author--byline")">
+    @if (showImage)
+    {
+        @* Decorative: the author's name sits right next to it. *@
+        <picture class="feed-item__author-image">
+            <igloo-image media="author.Image" alt="" slot-width="imageSlotWidth" aspect-ratio="1" class="rounded-full object-cover @loadingState" />
+        </picture>
+    }
+    <div class="feed-item__author-text">
+        <span class="feed-item__author-name">@Umbraco.GetDictionaryValueOrDefault("Feed.By", "By") @name</span>
+        @if (isBio && !string.IsNullOrWhiteSpace(author.Title))
+        {
+            <span class="feed-item__author-title">@author.Title</span>
+        }
+        @if (isBio && !string.IsNullOrWhiteSpace(author.Description))
+        {
+            <p class="feed-item__author-bio">@author.Description</p>
+        }
+    </div>
+</igloo-block-wrap>

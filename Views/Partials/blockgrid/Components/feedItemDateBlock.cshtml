@@ -1,0 +1,30 @@
+@using System.Globalization
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemDateBlock, ContentModels.FeedItemDateBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@{
+    var item = _feedItemContext.GetCurrent()?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Date")" />
+        return;
+    }
+
+    var date = item.GetDisplayDate();
+
+    // Always in the visitor's language: "7 februari 2026" on a Swedish page.
+    var formatted = Model.Settings?.DateFormat switch
+    {
+        "short" => date.ToString("d MMM yyyy", CultureInfo.CurrentCulture),
+        "numeric" => date.ToString("d", CultureInfo.CurrentCulture),
+        _ => date.ToString("d MMMM yyyy", CultureInfo.CurrentCulture),
+    };
+}
+
+<igloo-block-wrap settings="Model.Settings" content="Model.Content" class="feed-item__date">
+    @if (!string.IsNullOrWhiteSpace(Model.Content.Label))
+    {
+        <span class="feed-item__date-label">@Model.Content.Label</span>
+    }
+    <time datetime="@date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@formatted</time>
+</igloo-block-wrap>

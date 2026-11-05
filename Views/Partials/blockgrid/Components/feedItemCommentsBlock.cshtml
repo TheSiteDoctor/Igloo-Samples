@@ -1,0 +1,51 @@
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemCommentsBlock, ContentModels.FeedItemCommentsBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@inject IFeedUrlResolver _feedUrlResolver
+@inject ISettingsService _settingsService
+@{
+    var settings = Model.Settings;
+    var item = _feedItemContext.GetCurrent()?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Comments")" />
+        return;
+    }
+
+    // Nothing at all without a valid shortname, for another provider, or when the item turns comments off.
+    // The shortname becomes the script's host, so anything that isn't a plain shortname never renders.
+    var shortname = FeedComments.Shortname(_settingsService.Get(System.Threading.Thread.CurrentThread.CurrentCulture.Name)?.DisqusShortname);
+    if (shortname is null || !FeedComments.UsesDisqus(settings?.Provider) || item.DisableComments)
+    {
+        return;
+    }
+
+    // Disqus has one thread per page, so a second Comments widget renders nothing.
+    const string renderedKey = "igloo.feedComments.rendered";
+    if (Context.Items.ContainsKey(renderedKey))
+    {
+        return;
+    }
+
+    // Disqus never loads inside the backoffice preview.
+    if (Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request))
+    {
+        <p class="feed-item-widget__hint">Comments: Disqus loads on the live page.</p>
+        return;
+    }
+
+    var loadOn = settings?.LoadOn is "load" or "click" ? settings.LoadOn : "scroll";
+    Context.Items[renderedKey] = true;
+}
+
+<igloo-block-wrap settings="settings" content="Model.Content" class="feed-item__comments">
+    <igloo-heading heading="@Model.Content.Heading" />
+    <div data-feed-comments data-shortname="@shortname" data-load-on="@loadOn"
+         data-url="@_feedUrlResolver.GetCanonicalUrl(item)" data-identifier="@item.Key">
+        @if (loadOn == "click")
+        {
+            <button type="button" class="button button--default @(Model.Settings?.ButtonStyle?.Key is { } style ? $"variant-btn-{style}" : null)" data-feed-comments-load>@Umbraco.GetDictionaryValueOrDefault("Feed.ShowComments", "Show comments")</button>
+        }
+        <div id="disqus_thread"></div>
+    </div>
+</igloo-block-wrap>

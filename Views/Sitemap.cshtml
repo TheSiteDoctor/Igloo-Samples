@@ -31,7 +31,7 @@
             </url>
         }
 
-        foreach (var node in root.Children().Where(x => x.ContentType.CompositionAliases.Contains("compSeo") && !x.Value<bool>("hideFromSearchEngines")))
+        foreach (var node in root.Children().Where(x => x.ContentType.CompositionAliases.Contains("compSeo") && !x.Value<bool>("hideFromSearchEngines") && !x.HasLinkOverride()))
         {
             if (node.TemplateId != 0 && node.ContentType.Alias != "sitemap")
             {

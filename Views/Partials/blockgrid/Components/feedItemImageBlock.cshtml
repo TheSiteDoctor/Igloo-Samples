@@ -1,0 +1,48 @@
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemImageBlock, ContentModels.FeedItemImageBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@inject IDesignsService _designsService
+@{
+    var settings = Model.Settings;
+    var context = _feedItemContext.GetCurrent();
+    var item = context?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Image")" />
+        return;
+    }
+
+    // The hero is the item's own image; "card" shows what its cards show (card image, then main
+    // image, then the feed default), for layouts that want the thumbnail on the page too.
+    var media = settings?.ImageSource == "card" ? item.GetCardImage(context!.Feed) : item.Image;
+    if (media is null)
+    {
+        return;
+    }
+
+    var pageDesign = _designsService.GetDesignFromPage(Umbraco.AssignedContentItem.Key, null);
+    var blockWidth = BlockHelper.GetSlotWidth(pageDesign, (string?)ViewData["containerWidth"], Model.ColumnSpan, Model.GridColumns);
+    var widthPercentage = int.TryParse(BlockHelper.RemovePercentageSymbol(settings?.ImageWidth), out var parsedPercentage) ? parsedPercentage : 100;
+    var slotWidth = (int)Math.Ceiling(blockWidth * (widthPercentage / 100.0));
+    var aspectRatio = Igloo.Models.Feed.FeedCardModel.ParseAspectRatio(settings?.AspectRatio);
+    var altText = media.GetAltText();
+    var showCaption = settings?.ShowCaption == true && !string.IsNullOrWhiteSpace(altText);
+    var loadingState = Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request) ? "loaded" : string.Empty;
+}
+
+<igloo-block-wrap settings="settings" content="Model.Content">
+    <figure class="feed-item__image @BlockHelper.GetColumnWidth(settings?.ImageWidth)">
+        <picture class="block w-full h-full">
+            @* A shown caption already says what the alt text would, so the image is decorative then. *@
+            <igloo-image media="media"
+                         alt="@(showCaption ? string.Empty : altText)"
+                         slot-width="slotWidth"
+                         aspect-ratio="aspectRatio"
+                         class="block w-full h-full object-cover @loadingState" />
+        </picture>
+        @if (showCaption)
+        {
+            <figcaption class="text-sm italic text-center">@altText</figcaption>
+        }
+    </figure>
+</igloo-block-wrap>

@@ -1,0 +1,75 @@
+@using Igloo.Models.Feed
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.LatestFromFeedBlock, ContentModels.LatestFromFeedBlockSettings>>
+@inject ILatestFromFeedBuilder _latestBuilder
+@inject IFeedUrlResolver _feedUrlResolver
+@inject IDesignsService _designsService
+@{
+    var settings = Model.Settings;
+    var content = Model.Content;
+    var page = Umbraco.AssignedContentItem;
+    var isPreview = Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request);
+
+    var latest = _latestBuilder.Build(content, settings, page);
+    if (latest is null)
+    {
+        if (isPreview)
+        {
+            <igloo-block-wrap settings="settings" content="content">
+                <p class="feed-item-widget__hint">Latest from Feed: pick a feed to show its newest items.</p>
+            </igloo-block-wrap>
+        }
+        return;
+    }
+
+    var feed = latest.Feed;
+    var items = latest.Items;
+    if (items.Count == 0)
+    {
+        if (isPreview)
+        {
+            <igloo-block-wrap settings="settings" content="content">
+                <p class="feed-item-widget__hint">Latest from Feed: no items match this feed and its presets.</p>
+            </igloo-block-wrap>
+        }
+        return;
+    }
+
+    var pageDesign = _designsService.GetDesignFromPage(page.Key, null);
+    var blockWidth = BlockHelper.GetSlotWidth(pageDesign, (string?)ViewData["containerWidth"], Model.ColumnSpan, Model.GridColumns);
+    var columns = LatestFromFeedBuilder.Columns(items.Count, blockWidth);
+    var slotWidth = (int)Math.Ceiling(blockWidth / (double)columns);
+    var scrollOnMobile = settings?.MobileLayout == "scroll";
+}
+
+<igloo-block-wrap settings="settings" content="content" class="latest-feed">
+    @if (!string.IsNullOrWhiteSpace(content.PreHeading))
+    {
+        <div class="pre-head">@content.PreHeading</div>
+    }
+    <igloo-heading heading="@content.Heading" />
+    @if (isPreview && latest.IgnoredPresetCategories > 0)
+    {
+        <p class="feed-item-widget__hint">Some preset categories belong to another feed, so they are ignored.</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(content.IntroText?.ToHtmlString()))
+    {
+        <div class="rich-text latest-feed__intro">@Html.Raw(content.IntroText)</div>
+    }
+
+    <ul class="latest-feed__items feed-card-grid @(scrollOnMobile ? "latest-feed__items--scroll" : null)" style="--grid-column-count: @columns">
+        @foreach (var item in items)
+        {
+            var url = item.LinkOverride?.Url ?? _feedUrlResolver.GetItemUrl(item, feed);
+            var categoryName = (item.Category as FeedCategory)?.Name;
+            <li>
+                <partial name="feed/_FeedCard" model="@(new FeedCardModel(item, feed, settings, url, categoryName, slotWidth))" />
+            </li>
+        }
+    </ul>
+
+    @if (content.Buttons?.Any() == true)
+    {
+        <igloo-button-list model="@content.Buttons" class="mt-6"></igloo-button-list>
+    }
+</igloo-block-wrap>

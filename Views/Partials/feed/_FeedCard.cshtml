@@ -1,0 +1,125 @@
+@using Igloo.Models.Feed
+@model FeedCardModel
+@{
+    // Markup contract: article.feed-card > [a.feed-card__image > img[alt]] >
+    // div.feed-card__body > {pre-head?} {hN.feed-card__heading > a} {time.feed-card__date[datetime]}
+    // {p.feed-card__summary} {ul.feed-card__tags}. The heading link is the card's one focusable
+    // link; CSS stretches it over the card, and the image link is hidden from keyboard and readers.
+    var item = Model.Item;
+    var settings = Model.Settings;
+
+    var title = string.IsNullOrWhiteSpace(item.Heading) ? item.Name : item.Heading;
+    var target = item.LinkOverride?.Target;
+
+    var headingSize = settings?.CardHeadingLevel?.Size is { } size and >= HeadingSize.H2 and <= HeadingSize.H6 ? size : HeadingSize.H3;
+    var headingTag = headingSize.ToString().ToLowerInvariant();
+
+    var image = settings?.ShowImage ?? true ? item.GetCardImage(Model.Feed) : null;
+    if (!BlockHelper.TryParseImagePosition(settings?.FeedListItemImagePosition, out var imagePosition))
+    {
+        imagePosition = ImagePosition.Top;
+    }
+
+    var isBackground = imagePosition == ImagePosition.Background;
+    var isColumn = imagePosition is ImagePosition.Top or ImagePosition.Bottom;
+    var aspectRatio = FeedCardModel.ParseAspectRatio(settings?.FeedListItemImageAspectRatio ?? "3/2");
+    var imageSlotWidth = isColumn || isBackground ? Model.SlotWidth : (int)Math.Ceiling(Model.SlotWidth / 2.0);
+
+    var boxed = settings?.FeedListItemBoxed ?? true ? "boxed" : string.Empty;
+    var palette = settings?.FeedListItemPalette is { } p ? $"palette-{p.Key}" : string.Empty;
+    var textAlignment = BlockHelper.GetTextAlignment(settings?.FeedListItemTextAlignment);
+    var verticalAlignment = BlockHelper.GetJustifyAlignment(settings?.FeedListItemVerticalTextAlignment);
+    // Text on a background image needs an overlay: default 50%. Without a palette
+    // there is no palette colour to tint with, so the card uses a dark overlay and light text.
+    var overlayStrength = BlockHelper.RemovePercentageSymbol(settings?.FeedListItemOverlayStrength);
+    if (string.IsNullOrWhiteSpace(overlayStrength))
+    {
+        overlayStrength = "50";
+    }
+    var onImage = isBackground && image is not null && settings?.FeedListItemPalette is null ? "feed-card--on-image" : string.Empty;
+    var overlayClass = BlockHelper.IsLightColor(settings?.FeedListItemPalette?.TextColor?.ToString()) ? string.Empty : "overlay--light";
+
+    var showCategory = (settings?.ShowCategory ?? true) && !string.IsNullOrWhiteSpace(Model.CategoryName);
+    var showDate = (settings?.ShowDate ?? true) && item.Date != default;
+    var showSummary = (settings?.ShowSummary ?? true) && !string.IsNullOrWhiteSpace(item.Summary);
+    var tags = settings?.ShowTags == true ? item.Tags?.ToList() ?? [] : [];
+    var author = settings?.ShowAuthor == true ? item.Author as Person : null;
+
+    var buttonClass = "button button--default feed-card__read-more";
+    if (settings?.ReadMoreButtonStyle?.Key is { } buttonStyle)
+    {
+        buttonClass += $" variant-btn-{buttonStyle}";
+    }
+
+    var loadingState = Igloo.Extensions.HttpRequestExtensions.IsBlockPreviewRequest(Context.Request) ? "loaded" : string.Empty;
+}
+<article class="feed-card img-@(imagePosition.ToString().ToLowerInvariant()) @boxed @palette @onImage @textAlignment relative h-full">
+    @if (image is not null && !isBackground)
+    {
+        <a class="feed-card__image @BlockHelper.GetImagePositionClass(imagePosition)" href="@Model.Url" target="@target" tabindex="-1" aria-hidden="true">
+            <igloo-image media="image"
+                         alt="@image.GetAltText()"
+                         slot-width="imageSlotWidth"
+                         aspect-ratio="aspectRatio"
+                         class="w-full h-full object-cover object-center @loadingState" />
+        </a>
+    }
+    <div class="feed-card__body flex flex-col @verticalAlignment">
+        @if (showCategory)
+        {
+            <div class="pre-head feed-card__category">@Model.CategoryName</div>
+        }
+        else if (!string.IsNullOrWhiteSpace(item.PreHeading))
+        {
+            <div class="pre-head">@item.PreHeading</div>
+        }
+
+        @Html.Raw($"<{headingTag} class=\"feed-card__heading\">")<a href="@Model.Url" target="@target" rel="@(target == "_blank" ? "noopener" : null)">@title</a>@Html.Raw($"</{headingTag}>")
+
+        @if (showDate || author is not null)
+        {
+            <div class="feed-card__meta">
+                @if (showDate)
+                {
+                    <time class="feed-card__date" datetime="@item.Date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)">@item.Date.ToString("d MMMM yyyy", System.Globalization.CultureInfo.CurrentCulture)</time>
+                }
+                @if (author is not null)
+                {
+                    <span class="feed-card__author">@author.FullName</span>
+                }
+            </div>
+        }
+
+        @if (showSummary)
+        {
+            <p class="feed-card__summary">@item.Summary</p>
+        }
+
+        @if (tags.Count > 0)
+        {
+            <ul class="feed-card__tags">
+                @foreach (var tag in tags)
+                {
+                    <li>@tag</li>
+                }
+            </ul>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(settings?.ReadMoreText))
+        {
+            // Not a link of its own: the stretched heading link already covers the card.
+            <span class="@buttonClass" aria-hidden="true">@settings.ReadMoreText</span>
+        }
+    </div>
+
+    @if (image is not null && isBackground)
+    {
+        <div class="feed-card__background absolute inset-0 -z-10">
+            <igloo-image media="image"
+                         alt=""
+                         slot-width="imageSlotWidth"
+                         class="w-full h-full object-cover object-center @loadingState" />
+        </div>
+        <div class="overlay feed-card__overlay @overlayClass opacity-@overlayStrength"></div>
+    }
+</article>

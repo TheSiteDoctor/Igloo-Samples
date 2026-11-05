@@ -8,9 +8,13 @@
     var companyName = siteSettings?.CompanyName;
 
     var siteLogo = siteSettings?.SiteLogo;
+
+    // The link's only content is the logo and the site name, so with both settings blank it has no
+    // accessible name; fall back to the company name, then the site's own node name.
+    var logoName = new[] { siteName, companyName, site.Name }.FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
 }
 
-<a id="logo" href="@site.Url()" class="logo" title="@siteName">
+<a id="logo" href="@site.Url()" class="logo" title="@siteName" aria-label="@logoName">
     @if (siteLogo != null)
     {
         <picture>

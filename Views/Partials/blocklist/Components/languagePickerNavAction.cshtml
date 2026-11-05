@@ -1,6 +1,7 @@
 ﻿@using System.Globalization
 @inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockListItem<ContentModels.LanguagePickerNavAction>>
 @inject IDesignsService _designsService;
+@inject Igloo.Services.Feed.IFeedService _feedService;
 @{
     var site = Umbraco.AssignedContentItem.Root<Site>();
     if (site?.Cultures.Count == 1)
@@ -13,8 +14,27 @@
     var expandDictionaryValue = Umbraco.GetDictionaryValue("Show Subpages");
 
     CultureInfo currentCi = System.Threading.Thread.CurrentThread.CurrentCulture;
-    var currentLanguageTitle = site?.LanguageName ?? Thread.CurrentThread.CurrentUICulture.NativeName;
+    // A blank Language Name is "", not null; without a fallback the link has no accessible name.
+    var currentLanguageTitle = string.IsNullOrWhiteSpace(site?.LanguageName) ? Thread.CurrentThread.CurrentUICulture.NativeName : site.LanguageName;
     var currentFlagUrl = site?.LanguageFlag?.Url() ?? site?.GetCulture()?.GetFlag();
+
+    // Stay on this page in the other language when it's published there, else go to that language's
+    // home. A Feed Listing on the page keeps its filters, with categories mapped by key.
+    var page = Umbraco.AssignedContentItem;
+    var feedListing = Context.Items[Igloo.Services.Feed.FeedListingModel.ItemsKey] as Igloo.Services.Feed.FeedListingModel;
+    string UrlFor(string culture)
+    {
+        if (page.ContentType.VariesByCulture() && !page.Cultures.ContainsKey(culture))
+        {
+            return site!.Url(culture);
+        }
+
+        var url = page.Url(culture);
+        return feedListing is null
+            ? url
+            : Igloo.Services.Feed.FeedListingQueryString.ForCulture(url, feedListing.Query, feedListing.Prefix,
+                slug => _feedService.ResolveCategory(feedListing.Feed, slug) is { } category ? _feedService.GetCategorySlug(category, culture) : null);
+    }
 }
 
 <li class="language-selector has-children">
@@ -31,7 +51,7 @@
             var flagUrl = site.Value<IPublishedContent>("languageFlag", culture: ci.Name)?.Url() != null ? site.Value<IPublishedContent>("languageFlag", culture: ci.Name)?.Url() : infos.GetFlag();
 
             <li>
-                <a href="@(site.Url(culture))" class="main-nav-link" title="@title" data-culture="@ci.Name">
+                <a href="@UrlFor(culture)" class="main-nav-link" title="@title" data-culture="@ci.Name">
                     <img loading='lazy' src="@flagUrl" alt="@title"/>
                     <span>@title</span>
                 </a>

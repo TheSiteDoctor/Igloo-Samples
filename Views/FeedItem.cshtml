@@ -1,0 +1,19 @@
+﻿@using Igloo.Services.Feed
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
+@inject IFeedItemContextAccessor _feedItemContext
+@{
+    Layout = "_Master.cshtml";
+
+    // Every item renders through its feed's Item Layout. An editor who empties
+    // the layout gets just the item's own content.
+    var itemLayout = _feedItemContext.GetCurrent()?.Feed.ItemLayout;
+}
+
+@if (itemLayout?.Any() == true)
+{
+    @await Html.GetBlockGridHtmlAsync(itemLayout)
+}
+else
+{
+    @await Html.GetBlockGridHtmlAsync(Model, "content")
+}

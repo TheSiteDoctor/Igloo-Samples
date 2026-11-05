@@ -1,0 +1,79 @@
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<(FeedListingModel Listing, Guid? ButtonStyleKey)>
+@{
+    var listing = Model.Listing;
+    var page = listing.Result.Page;
+    var totalPages = listing.Result.TotalPages;
+
+    if (totalPages <= 1 || listing.Pagination == FeedListingValues.Pagination.None)
+    {
+        return;
+    }
+
+    var buttonClass = "button button--default";
+    if (Model.ButtonStyleKey is { } buttonStyle)
+    {
+        buttonClass += $" variant-btn-{buttonStyle}";
+    }
+
+    // Page links share the listing's Button Style, or the plain feed pill without one.
+    var linkClass = $"{FeedButtonClass.For(Model.ButtonStyleKey)} feed-listing__pager-link";
+
+    // Numbered pages shown around the current one; the first and last are always reachable.
+    var window = Enumerable.Range(Math.Max(1, page - 2), Math.Min(totalPages, page + 2) - Math.Max(1, page - 2) + 1).ToList();
+}
+
+@if (listing.Pagination == FeedListingValues.Pagination.LoadMore)
+{
+    if (page < totalPages)
+    {
+        <div class="feed-listing__load-more">
+            @* A real link to the next page, so it works without JS; feedListing.ts appends instead. *@
+            <a class="@buttonClass" href="@listing.PageUrl(page + 1)" rel="next" data-feed-listing-load-more>@Umbraco.GetDictionaryValueOrDefault("Feed.LoadMore", "Load more")</a>
+        </div>
+    }
+}
+else
+{
+    <nav class="feed-listing__pager" aria-label="@Umbraco.GetDictionaryValueOrDefault("Feed.Pagination", "Pages")">
+        <ul>
+            @if (page > 1)
+            {
+                <li><a class="@linkClass feed-listing__pager-link--previous" href="@listing.PageUrl(page - 1)" rel="prev" data-feed-listing-link><i class="ph ph-caret-left" aria-hidden="true"></i>@Umbraco.GetDictionaryValueOrDefault("Feed.Previous", "Previous")</a></li>
+            }
+            @if (window[0] > 1)
+            {
+                <li><a class="@linkClass" href="@listing.PageUrl(1)" data-feed-listing-link>1</a></li>
+                @if (window[0] > 2)
+                {
+                    <li class="feed-listing__pager-gap" aria-hidden="true">&hellip;</li>
+                }
+            }
+            @foreach (var number in window)
+            {
+                <li>
+                    @if (number == page)
+                    {
+                        <span class="@linkClass" aria-current="page">@number</span>
+                    }
+                    else
+                    {
+                        <a class="@linkClass" href="@listing.PageUrl(number)" data-feed-listing-link>@number</a>
+                    }
+                </li>
+            }
+            @if (window[^1] < totalPages)
+            {
+                @if (window[^1] < totalPages - 1)
+                {
+                    <li class="feed-listing__pager-gap" aria-hidden="true">&hellip;</li>
+                }
+                <li><a class="@linkClass" href="@listing.PageUrl(totalPages)" data-feed-listing-link>@totalPages</a></li>
+            }
+            @if (page < totalPages)
+            {
+                <li><a class="@linkClass feed-listing__pager-link--next" href="@listing.PageUrl(page + 1)" rel="next" data-feed-listing-link>@Umbraco.GetDictionaryValueOrDefault("Feed.Next", "Next")<i class="ph ph-caret-right" aria-hidden="true"></i></a></li>
+            }
+        </ul>
+    </nav>
+}

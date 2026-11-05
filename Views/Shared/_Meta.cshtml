@@ -3,6 +3,8 @@
 @inherits UmbracoViewPage
 @inject ISettingsService _settingsService;
 @inject IPublishedValueFallback _publishedValueFallback;
+@inject Igloo.Services.Feed.IFeedItemContextAccessor _feedItemContext;
+@inject Igloo.Services.Feed.IFeedUrlResolver _feedUrlResolver;
 @{
     var site = Model.Root() as Site;
     var page = new Page(Umbraco.AssignedContentItem, _publishedValueFallback);
@@ -18,18 +20,80 @@
     var description = !string.IsNullOrWhiteSpace(page.MetaDescription) ?
         page.MetaDescription : site?.MetaDescription;
 
+    // A feed with no image of its own shares its default item image before falling back to the site's.
     var openGraphImage = string.Empty;
     if (page.MetaImage != null)
     {
         openGraphImage = page.MetaImage.GetCropUrl(width: 1200, furtherOptions: "&upscale=false", urlMode: UrlMode.Absolute) ?? string.Empty;
+    }
+    else if (Umbraco.AssignedContentItem is Feed { DefaultItemImage: { } feedImage })
+    {
+        openGraphImage = feedImage.GetCropUrl(width: 1200, furtherOptions: "&upscale=false", urlMode: UrlMode.Absolute) ?? string.Empty;
     }
     else if (site?.MetaImage != null)
     {
         openGraphImage = site?.MetaImage.GetCropUrl(width: 1200, furtherOptions: "&upscale=false", urlMode: UrlMode.Absolute) ?? string.Empty;
     }
 
+    // Feed items fall back to their own heading, summary and card image, and are
+    // described as articles.
+    var feedItemContext = Umbraco.AssignedContentItem is FeedItem ? _feedItemContext.GetCurrent() : null;
+    var feedItem = feedItemContext?.Item;
+
+    // The item's own description and image, without the site-wide fallbacks, for its JSON-LD.
+    string? itemDescription = null;
+    string? itemImage = null;
+    if (feedItem is not null)
+    {
+        if (string.IsNullOrWhiteSpace(page.MetaTitle))
+        {
+            title = (string.IsNullOrWhiteSpace(feedItem.Heading) ? feedItem.Name : feedItem.Heading) + siteSettings?.TitleSignature;
+        }
+
+        itemDescription = !string.IsNullOrWhiteSpace(page.MetaDescription) ? page.MetaDescription : feedItem.Summary;
+        if (!string.IsNullOrWhiteSpace(itemDescription))
+        {
+            description = itemDescription;
+        }
+
+        var itemMedia = page.MetaImage ?? feedItem.GetCardImage(feedItemContext!.Feed);
+        itemImage = itemMedia?.GetCropUrl(width: 1200, furtherOptions: "&upscale=false", urlMode: UrlMode.Absolute);
+        if (!string.IsNullOrWhiteSpace(itemImage))
+        {
+            openGraphImage = itemImage;
+        }
+    }
+
     var canonical = !string.IsNullOrWhiteSpace(page.OverrideCanonicalUrl)
         ? page.OverrideCanonicalUrl : Model.Url(mode: UrlMode.Absolute);
+
+    // A Feed Listing on the page (rendered before the layout) makes paged URLs canonical to their own
+    // page without filters, sort or tracking parameters, and links the neighbouring pages.
+    // Built on the page's own URL, which respects its assigned domain, rather than on the request's host.
+    var feedListing = Context.Items[Igloo.Services.Feed.FeedListingModel.ItemsKey] as Igloo.Services.Feed.FeedListingModel;
+    var pageUrl = Model.Url(mode: UrlMode.Absolute);
+    if (feedListing is not null && string.IsNullOrWhiteSpace(page.OverrideCanonicalUrl))
+    {
+        canonical = feedListing.CanonicalUrl(pageUrl);
+    }
+    var previousPageUrl = feedListing?.RelPageUrl(pageUrl, feedListing.Result.Page - 1);
+    var nextPageUrl = feedListing?.RelPageUrl(pageUrl, feedListing.Result.Page + 1);
+
+    // An item's canonical is its canonical feed's URL, and JSON-LD agrees with it.
+    if (feedItem is not null && string.IsNullOrWhiteSpace(page.OverrideCanonicalUrl))
+    {
+        canonical = _feedUrlResolver.GetCanonicalUrl(feedItem);
+    }
+
+    // Each listing page gets its own title, so paged URLs aren't duplicate titles to search engines.
+    // The label is a translation, so its {0} is replaced rather than formatted: a stray brace can't break the page.
+    if (feedListing is { Result.Page: > 1 })
+    {
+        var pageLabel = Umbraco.GetDictionaryValueOrDefault("Feed.PageTitle", "Page {0}")
+            .Replace("{0}", feedListing.Result.Page.ToString(CultureInfo.CurrentCulture));
+        var baseTitle = !string.IsNullOrWhiteSpace(page.MetaTitle) ? page.MetaTitle : page.Name;
+        title = $"{baseTitle} - {pageLabel}{siteSettings?.TitleSignature}";
+    }
 
     var iconBackgroundColor = siteSettings?.IconBackgroundColor?.Color ?? "#FFFFFF";
     var favicon = siteSettings?.Favicon;
@@ -49,7 +113,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>@(title)</title>
-<meta name="description" content="@(description)">
+@if (!string.IsNullOrWhiteSpace(description))
+{
+    <meta name="description" content="@(description)">
+}
+<link rel="canonical" href="@canonical" />
 
 <meta name="twitter:card" content="summary_large_image">
 
@@ -59,10 +127,62 @@
 }
 
 <meta property="og:title" content="@(title)" />
-<meta property="og:type" content="website" />
-<meta property="og:description" content="@(description)" />
-<meta property="og:image" content="@(openGraphImage)" />
+<meta property="og:type" content="@(feedItem is not null ? "article" : "website")" />
+@if (!string.IsNullOrWhiteSpace(description))
+{
+    <meta property="og:description" content="@(description)" />
+}
+@if (!string.IsNullOrWhiteSpace(openGraphImage))
+{
+    <meta property="og:image" content="@(openGraphImage)" />
+}
 <meta property="og:url" content="@(canonical)">
+@if (feedItem is not null)
+{
+    var published = feedItem.GetDisplayDate();
+    <meta property="article:published_time" content="@Igloo.Services.Feed.FeedStructuredData.Iso(published)" />
+    @if (feedItem.Category is FeedCategory articleSection)
+    {
+        <meta property="article:section" content="@articleSection.Name" />
+    }
+    @foreach (var tag in feedItem.Tags ?? [])
+    {
+        <meta property="article:tag" content="@tag" />
+    }
+
+    var articleJson = Igloo.Services.Feed.FeedStructuredData.Article(new(
+        string.IsNullOrWhiteSpace(feedItemContext!.Feed.StructuredDataType) ? "Article" : feedItemContext.Feed.StructuredDataType,
+        string.IsNullOrWhiteSpace(feedItem.Heading) ? feedItem.Name : feedItem.Heading,
+        _feedUrlResolver.GetCanonicalUrl(feedItem),
+        string.IsNullOrWhiteSpace(itemImage) ? [] : [itemImage],
+        published,
+        feedItem.UpdateDate,
+        itemDescription,
+        feedItem.Author is Person author ? (string.IsNullOrWhiteSpace(author.FullName) ? author.Name : author.FullName) : null,
+        siteSettings?.CompanyName,
+        siteSettings?.CompanyLogo?.Url(mode: UrlMode.Absolute)));
+    if (articleJson is not null)
+    {
+        <script type="application/ld+json">@Html.Raw(articleJson)</script>
+    }
+}
+@if (Umbraco.AssignedContentItem is Feed feedPage && feedListing is not null && feedListing.Feed.Key == feedPage.Key && feedListing.Result.Page == 1)
+{
+    <script type="application/ld+json">@Html.Raw(Igloo.Services.Feed.FeedStructuredData.CollectionPage(
+        feedPage.Name, pageUrl,
+        feedListing.Result.Items.Where(x => !x.HasLinkOverride()).Select(x => _feedUrlResolver.GetItemUrl(x, feedListing.Feed, mode: UrlMode.Absolute)).ToList()))</script>
+}
+@if (feedListing is not null)
+{
+    @if (previousPageUrl is not null)
+    {
+        <link rel="prev" href="@previousPageUrl" />
+    }
+    @if (nextPageUrl is not null)
+    {
+        <link rel="next" href="@nextPageUrl" />
+    }
+}
 
 @if (!string.IsNullOrWhiteSpace(siteName))
 {

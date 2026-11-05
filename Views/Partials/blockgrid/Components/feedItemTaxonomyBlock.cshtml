@@ -1,0 +1,60 @@
+@using Igloo.Services.Feed
+@using Microsoft.AspNetCore.WebUtilities
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemTaxonomyBlock, ContentModels.FeedItemTaxonomyBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@inject IFeedService _feedService
+@{
+    var settings = Model.Settings;
+    var context = _feedItemContext.GetCurrent();
+    var item = context?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Category and Tags")" />
+        return;
+    }
+
+    var category = settings?.ShowCategory ?? true ? item.Category as FeedCategory : null;
+    var tags = settings?.ShowTags ?? true ? item.Tags?.ToList() ?? [] : [];
+    if (category is null && tags.Count == 0)
+    {
+        return;
+    }
+
+    // Links open the feed filtered by that category or tag, using the Feed Listing query string.
+    var linkToFeed = settings?.LinkToFeed ?? true;
+    var feedUrl = context!.Feed.Url();
+    var categoryClass = FeedButtonClass.For(settings?.CategoryButtonStyle?.Key);
+    var tagClass = FeedButtonClass.For(settings?.TagButtonStyle?.Key);
+}
+
+<igloo-block-wrap settings="settings" content="Model.Content" class="feed-item__taxonomy">
+    <igloo-heading heading="@Model.Content.Heading" />
+    <ul class="feed-item__taxonomy-list">
+        @if (category is not null)
+        {
+            <li class="feed-item__category">
+                @if (linkToFeed)
+                {
+                    <a class="@categoryClass" href="@QueryHelpers.AddQueryString(feedUrl, FeedListingQueryString.CategoryKey, _feedService.GetCategorySlug(category))">@category.Name</a>
+                }
+                else
+                {
+                    <span class="@categoryClass">@category.Name</span>
+                }
+            </li>
+        }
+        @foreach (var tag in tags)
+        {
+            <li class="feed-item__tag">
+                @if (linkToFeed)
+                {
+                    <a class="@tagClass" href="@QueryHelpers.AddQueryString(feedUrl, FeedListingQueryString.TagKey, tag)">@tag</a>
+                }
+                else
+                {
+                    <span class="@tagClass">@tag</span>
+                }
+            </li>
+        }
+    </ul>
+</igloo-block-wrap>

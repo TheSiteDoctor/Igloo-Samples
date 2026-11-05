@@ -1,0 +1,21 @@
+@using Igloo.Services.Feed
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FeedItemIntroBlock, ContentModels.FeedItemIntroBlockSettings>>
+@inject IFeedItemContextAccessor _feedItemContext
+@{
+    var settings = Model.Settings;
+    var item = _feedItemContext.GetCurrent()?.Item;
+    if (item is null)
+    {
+        <partial name="feed/_FeedItemWidgetHint" model="@("Intro")" />
+        return;
+    }
+
+    if (string.IsNullOrWhiteSpace(item.IntroText?.ToHtmlString()))
+    {
+        return;
+    }
+}
+
+<igloo-block-wrap settings="settings" content="Model.Content" class="@BlockHelper.GetTextAlignment(settings?.TextAlignment)">
+    <div class="rich-text feed-item__intro @BlockHelper.GetTextSizeClass(settings?.TextSize)">@Html.Raw(item.IntroText)</div>
+</igloo-block-wrap>
